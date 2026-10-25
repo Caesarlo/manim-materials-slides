@@ -94,11 +94,21 @@ const stage = manimStage(host, {
 ## 检查
 
 ```bash
+npm test           # 单元测试（vitest）：晶体结构构建，如配位数、键长
+npm run check      # 无头浏览器逐页逐步检查（用本机 Chrome/Edge，不下载浏览器）
+npm run check -- --slide 4          # 只查第 4 页
+npm run check -- --no-compare       # 只抓控制台错误，更快
 npm run build      # tsc 类型检查 + vite 构建
 npm run dev        # http://localhost:4100   #/页/步 直达，如 #/4/3
 ```
 
-改完看画面：文字压图、颜色在白底上看不清、3D 被旁白挡住，都不是控制台错误，要肉眼看。
+`npm run check` 做两件事：
+1. 逐页逐步跳转，**任何 `console.error` 或未捕获异常都算失败**。
+2. 验证 `enter()` 契约：对每一步，“从第 1 步一路点过来”和“直接跳到该步”的截图必须一致（差异 ≤ 0.1%）。
+   不一致说明某页的 `enter` 写成了“增量”而不是“状态”，差异图在 `check/diff-页-步.png`。
+
+截图都在 `check/`（已 git 忽略）。**改完请肉眼看截图**：文字压图、颜色在白底上看不清、3D 被旁白挡住，都不是控制台错误。
+新增页面后必须跑一遍 `npm run check`；改了 `structure.ts` 必须跑 `npm test`。
 
 ## 约定
 

@@ -39,6 +39,10 @@ class Deck {
     this.notesEl = app.querySelector('.deck-notes')!
     this.overviewEl = app.querySelector('.deck-overview')!
     this.bindInput()
+    // 供 tools/check-deck.mjs 读取页数/步数；busy 由 body.busy 指示
+    ;(window as unknown as { __deck: unknown }).__deck = {
+      slides: this.defs.map((d) => ({ name: d.name, steps: d.steps ?? 1 })),
+    }
     window.addEventListener('hashchange', () => this.request(this.fromHash()))
     this.request(this.fromHash())
   }

@@ -7,6 +7,8 @@ TypeScript + Vite，动画用 [manim-web](https://github.com/maloyan/manim-web)�
 npm install
 npm run dev        # http://localhost:4100
 npm run build      # 类型检查 + 构建到 dist/，可离线放映（需静态服务器）
+npm test           # 单元测试
+npm run check      # 无头浏览器逐页逐步检查（控制台错误 + 跳转/点击两种路径画面一致）
 ```
 
 ## 操作
@@ -54,4 +56,5 @@ deck.slide(crystalSlide({
 - [x] 材料包：CIF→数据、球棍/晶胞/配位多面体、相机运镜
 - [ ] 材料包：能带/态密度、热电 zT–T、相图/凸包、候选筛选漏斗、晶体图→GNN
 - [ ] 大模型包：词元条、注意力热图、自回归生成、Agent 日志回放（Maker→Verifier→Checker）
-- [ ] 导出：逐步截图 / PDF 兜底；`check` 脚本（无头浏览器逐页逐步检查控制台与画面）
+- [x] 自动检查：`npm run check`、`npm test`
+- [ ] 导出：逐步截图 / PDF 兜底
