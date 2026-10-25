@@ -1,7 +1,7 @@
 {
   "project": "manim-materials-slides",
   "schema_version": "1.0",
-  "last_updated": "",
+  "last_updated": "2026-10-25T09:55:57.194Z",
   "evidence": [],
   "rules": {
     "wip_limit_per_owner": 1,
@@ -445,7 +445,7 @@
       "area": "runtime",
       "title": "基线：运行时与幻灯片契约",
       "behavior": "点击/键盘步进、回退、URL 哈希直达、演讲者备注（S）、总览（O）、全屏（F）；`enter(step, animate)` 契约保证“跳转 == 点过来”；一个演讲一个目录，`?talk=` 加载，只挂载当前页。",
-      "status": "not_started",
+      "status": "passing",
       "dependencies": [],
       "verification": [
         {
@@ -472,7 +472,34 @@
       },
       "blocker": null,
       "notes": "【基线】这是 2026-10-25 之前已完成的工作，用真实命令补证据。设计依据：docs/adr/0002、0005。",
-      "evidence": []
+      "evidence": [
+        {
+          "kind": "test",
+          "command": "npm run verify",
+          "result": "passed",
+          "recorded_at": "2026-10-25T09:49:23.602Z",
+          "exit_code": 0,
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        },
+        {
+          "kind": "test",
+          "command": "npm run check -- --talk example",
+          "result": "passed",
+          "recorded_at": "2026-10-25T09:49:23.602Z",
+          "exit_code": 0,
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        },
+        {
+          "kind": "review",
+          "result": "passed",
+          "reviewer": "claude-main",
+          "summary": "审查了运行时（导航、回退、哈希直达、备注/总览/全屏、按 ?talk= 加载、只挂载当前页）与 enter 契约；示例演讲 17 步逐步检查全部 0.00%，npm run verify 通过。",
+          "recorded_at": "2026-10-25T09:49:30.790Z",
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        }
+      ],
+      "claim": null,
+      "owner": "agent"
     },
     {
       "id": "M0-FORMULA-001",
@@ -480,7 +507,7 @@
       "area": "runtime",
       "title": "基线：公式逐项变形",
       "behavior": "manim-web 舞台支持 `morphTex`：相同的 LaTeX 部分移动到新位置，不同部分淡入淡出，结束后只剩目标公式；上色放在 `prepare` 钩子。",
-      "status": "not_started",
+      "status": "passing",
       "dependencies": [],
       "verification": [
         {
@@ -498,7 +525,26 @@
       },
       "blocker": null,
       "notes": "【基线】已完成。设计依据：docs/adr/0001。",
-      "evidence": []
+      "evidence": [
+        {
+          "kind": "test",
+          "command": "npm run check -- --talk example --slide 2",
+          "result": "passed",
+          "recorded_at": "2026-10-25T09:50:19.889Z",
+          "exit_code": 0,
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        },
+        {
+          "kind": "review",
+          "result": "passed",
+          "reviewer": "claude-main",
+          "summary": "审查了 morphTex 与 prepare 钩子：公式变形后场景只剩目标公式，无叠影；颜色对应；示例第 2 页逐步 0.00%。",
+          "recorded_at": "2026-10-25T09:50:29.215Z",
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        }
+      ],
+      "claim": null,
+      "owner": "agent"
     },
     {
       "id": "M0-CRYSTAL-001",
@@ -506,7 +552,7 @@
       "area": "materials",
       "title": "基线：3D 晶体与晶体图 GNN",
       "behavior": "CIF → 数据 → 可拖动的 3D 球棍模型：晶胞、配位多面体、元素标签与图例、晶格矢量、高亮、按层聚焦、超胞、晶体 → 图 → GNN 消息传递。",
-      "status": "not_started",
+      "status": "passing",
       "dependencies": [],
       "verification": [
         {
@@ -535,7 +581,42 @@
       },
       "blocker": null,
       "notes": "【基线】已完成。",
-      "evidence": []
+      "evidence": [
+        {
+          "kind": "test",
+          "command": "npx vitest run src/packs/materials",
+          "result": "passed",
+          "recorded_at": "2026-10-25T09:51:56.742Z",
+          "exit_code": 0,
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        },
+        {
+          "kind": "test",
+          "command": "npm run check -- --talk gallery --slide 11",
+          "result": "passed",
+          "recorded_at": "2026-10-25T09:51:56.742Z",
+          "exit_code": 0,
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        },
+        {
+          "kind": "test",
+          "command": "npm run check -- --talk gallery --slide 13",
+          "result": "passed",
+          "recorded_at": "2026-10-25T09:51:56.742Z",
+          "exit_code": 0,
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        },
+        {
+          "kind": "review",
+          "result": "passed",
+          "reviewer": "claude-main",
+          "summary": "审查了结构构建（SrTiO3 6 键 1 八面体、Bi2Te3 键长 3.06/3.26 Å 与文献吻合）、标签/矢量/高亮/按层聚焦/超胞/GNN；单测 43 项通过，Bi2Te3 页与 GNN 页逐步 0.00%，并看过截图。",
+          "recorded_at": "2026-10-25T09:52:03.520Z",
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        }
+      ],
+      "claim": null,
+      "owner": "agent"
     },
     {
       "id": "M0-CHARTS-001",
@@ -543,7 +624,7 @@
       "area": "plot",
       "title": "基线：热电/材料图表套件",
       "behavior": "折线（含对数轴、峰值、直接标注）、能带 + 态密度、散点、形成能凸包、筛选漏斗、XRD 谱、柱状图；示例数据都带“示意数据”小注。",
-      "status": "not_started",
+      "status": "passing",
       "dependencies": [],
       "verification": [
         {
@@ -572,7 +653,42 @@
       },
       "blocker": null,
       "notes": "【基线】已完成。",
-      "evidence": []
+      "evidence": [
+        {
+          "kind": "test",
+          "command": "npx vitest run src/packs/plot",
+          "result": "passed",
+          "recorded_at": "2026-10-25T09:53:21.803Z",
+          "exit_code": 0,
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        },
+        {
+          "kind": "test",
+          "command": "npm run check -- --talk gallery --slide 1",
+          "result": "passed",
+          "recorded_at": "2026-10-25T09:53:21.803Z",
+          "exit_code": 0,
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        },
+        {
+          "kind": "test",
+          "command": "npm run check -- --talk gallery --slide 7",
+          "result": "passed",
+          "recorded_at": "2026-10-25T09:53:21.803Z",
+          "exit_code": 0,
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        },
+        {
+          "kind": "review",
+          "result": "passed",
+          "reviewer": "claude-main",
+          "summary": "审查了折线、能带+DOS、散点、凸包、漏斗、XRD、柱状图：纯逻辑单测手算断言通过，凸包 E_hull 与手算一致；折线页与凸包页逐步 0.00%；示例数据页均带示意数据小注。",
+          "recorded_at": "2026-10-25T09:53:30.027Z",
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        }
+      ],
+      "claim": null,
+      "owner": "agent"
     },
     {
       "id": "M0-LLM-001",
@@ -580,7 +696,7 @@
       "area": "llm",
       "title": "基线：大模型组件与 Agent 回放",
       "behavior": "词元条、注意力热图（真实缩放点积）、自回归与温度采样、架构块图、Agent 编排回放（LangChain 消息适配器，通用 trace）。",
-      "status": "not_started",
+      "status": "passing",
       "dependencies": [],
       "verification": [
         {
@@ -609,7 +725,42 @@
       },
       "blocker": null,
       "notes": "【基线】已完成。设计依据：docs/adr/0006。",
-      "evidence": []
+      "evidence": [
+        {
+          "kind": "test",
+          "command": "npx vitest run src/packs/llm",
+          "result": "passed",
+          "recorded_at": "2026-10-25T09:54:51.573Z",
+          "exit_code": 0,
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        },
+        {
+          "kind": "test",
+          "command": "npm run check -- --talk gallery-llm --slide 2",
+          "result": "passed",
+          "recorded_at": "2026-10-25T09:54:51.573Z",
+          "exit_code": 0,
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        },
+        {
+          "kind": "test",
+          "command": "npm run check -- --talk gallery-llm --slide 7",
+          "result": "passed",
+          "recorded_at": "2026-10-25T09:54:51.573Z",
+          "exit_code": 0,
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        },
+        {
+          "kind": "review",
+          "result": "passed",
+          "reviewer": "claude-main",
+          "summary": "审查了词元、真实缩放点积注意力、采样/温度/熵、架构块图、Agent 适配器（20 项单测，并行/失败/超时/重试）；注意力页与 Agent 页逐步 0.00%，看过截图。",
+          "recorded_at": "2026-10-25T09:54:58.859Z",
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        }
+      ],
+      "claim": null,
+      "owner": "agent"
     },
     {
       "id": "M0-DESIGN-001",
@@ -617,7 +768,7 @@
       "area": "design",
       "title": "基线：设计语言与数据诚实",
       "behavior": "白底、低饱和配色（只来自 palette）、底部一句旁白、文字不小于约 28 单位；示例数据一律带“示意数据”小注；纯逻辑有手算断言的单测；演讲不依赖 CDN。",
-      "status": "not_started",
+      "status": "passing",
       "dependencies": [],
       "verification": [
         {
@@ -643,7 +794,37 @@
       },
       "blocker": null,
       "notes": "【基线】已完成。设计依据：docs/adr/0003、0004。",
-      "evidence": []
+      "evidence": [
+        {
+          "kind": "test",
+          "command": "npm run verify",
+          "result": "passed",
+          "recorded_at": "2026-10-25T09:55:30.702Z",
+          "exit_code": 0,
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        },
+        {
+          "kind": "manual",
+          "verification_index": 2,
+          "command": "打开 README 里的示例截图与 gallery 的几页",
+          "expected": "白底、少小字、旁白一句、示例页都有“示意数据”小注",
+          "result": "passed",
+          "notes": "打开 README 的示例截图和画廊多页：白底、少小字、底部一句旁白、示例页右下角均有示意数据小注。",
+          "actor": "claude-main",
+          "recorded_at": "2026-10-25T09:55:40.884Z",
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        },
+        {
+          "kind": "review",
+          "result": "passed",
+          "reviewer": "claude-main",
+          "summary": "审查了设计语言与数据诚实：白底、旁白一句、文字不小于 28 单位、示意数据小注齐全；README 与画廊截图人工查看过。",
+          "recorded_at": "2026-10-25T09:55:49.377Z",
+          "commit_sha": "17fba452710ac7c0c940d71e47f3d582afd11d17"
+        }
+      ],
+      "claim": null,
+      "owner": "agent"
     }
   ]
 }
