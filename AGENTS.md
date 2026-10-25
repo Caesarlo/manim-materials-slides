@@ -20,12 +20,12 @@
 | `src/styles/deck.css` | 设计语言：以画面宽度 1% 为单位 `--u`，字号阶梯 `--t-*` |
 | `src/packs/materials/` | 材料包：`structure.ts`（晶体→原子/键/多面体）、`CrystalView.ts`（three.js）、`crystalSlide.ts`（声明式 3D 页）、`presets.ts`（成键规则） |
 | `src/packs/plot/` | 图表套件：`scale.ts`（比例尺/刻度）、`chartFrame.ts`（SVG 坐标轴底座）、`chartSlide.ts`（声明式图表页）；`lineChart`、`bandChart`、`scatterChart`、`hullChart`、`funnel`、`xrdChart`（各自的纯逻辑在 `*Math.ts`，有单测） |
-| `src/packs/llm/` | 大模型包（待补：词元条、注意力热图、训练管线…） |
+| `src/packs/llm/` | 大模型包：`tokenize` / `tokenStrip`（词元条）、`attentionMath` / `attentionMap`（注意力热图，权重由真实缩放点积计算）、`sampling` / `nextToken`（自回归与温度采样）、`blockLayout` / `blockDiagram`（架构块图）、`agentTrace` / `agentFlow`（Agent 编排回放，含 LangChain 消息适配器）；纯逻辑都有单测 |
 | `src/main.ts` | 入口：按 `?talk=名称` 加载 `src/talks/<名称>/talk.ts`，默认 `example` |
 | `src/talks/<名称>/` | 一场演讲：`talk.ts`（`register(deck)` 里按顺序注册页面）、`slides/*.ts`、`data/*.ts`（由脚本生成）。新建演讲 = 复制 `talks/example/` 改名，无需登记 |
 | `tools/cif_to_ts.py` | CIF → 晶体数据（`uv run`，自动装 gemmi，按空间群展开对称操作） |
 | `tools/csv_to_ts.py` | CSV → 折线图数据（`uv run`，无依赖；空值→`null`，`#` 注释保留；用法见 `tools/README.md`） |
-| `src/talks/gallery/` | **组件画廊**：每个图表/晶体组件各一页示范（数据均为示意），也是回归检查（`npm run check -- --talk gallery`）。新增组件时在这里加一页 |
+| `src/talks/gallery/`、`gallery-llm/` | **组件画廊**：`gallery` = 图表 + 晶体（含 GNN），`gallery-llm` = 大模型组件。每个组件一页示范（数据均为示意），也是回归检查（`npm run check -- --talk gallery` / `gallery-llm`）。新增组件时在对应画廊加一页 |
 
 ## 幻灯片契约
 
@@ -108,6 +108,22 @@ lineChartSlide({
 - 数据来源：`uv run tools/csv_to_ts.py x.csv out.ts --name xData` 生成 `{ xName, x, series:[{name,y}] }`，折线图用 `fromColumnTable(xData)` 转换（缺失值 `null` 自动跳过）。
 - 纯逻辑放 `*Math.ts`（不 import 带 CSS 的模块，否则 vitest 的 node 环境加载不了），并写**手算得出**的断言，不要只测“不抛错”。
 
+## 大模型组件（packs/llm）
+
+同样是“类 + 页面工厂（基于 `chartSlide`）+ 纯逻辑单测”。
+
+| 组件 | 页面工厂 | state 字段 |
+|---|---|---|
+| 词元条 | `tokenStripSlide` | `split` `ids` `focus` |
+| 注意力热图 | `attentionMapSlide` | `rowsShown` `focusRow` `masked` |
+| 下一个词元的概率 | `nextTokenSlide` | `round` `phase` `temp` `k` |
+| 架构块图 | `blockSlide` | `shown` `active` `residuals` `group` |
+| Agent 编排回放 | `agentSlide` | `at`（回放到第几个事件） |
+
+- **真实计算优先**：注意力（`attention(Q,K)`）、softmax / 温度 / 熵都是现算的，不要手填概率；示例用的是确定性随机小模型，页面上必须写“非真实模型输出”。
+- **Agent 回放不绑定任何项目**：`fromMessages(messages)` 把 LangChain 风格消息数组（`human/ai/tool`、`tool_calls`、`task` 工具委派子 agent、`additional_kwargs.subagent_status`，字段名与 harness 线程一致）转成通用 `AgentTrace`；并行调用合成一个 `delegate` 事件，失败后同样的调用被识别为 `retry`。换成真实线程只需替换消息数组。
+- 动画里**不要用 rAF / setTimeout 驱动状态**，会破坏“跳转 == 点过来”；位移用 CSS transform 过渡。
+
 ## 3D 晶体
 
 - 数据：`uv run tools/cif_to_ts.py x.cif src/talks/example/data/x.ts --export X --name "显示名"`，得到 `Crystal`（晶格矢量 Å + 分数坐标）。
@@ -117,6 +133,7 @@ lineChartSlide({
 - 相机**z 轴朝上**（c 轴竖直）。很高/很长的晶胞（如 Bi₂Te₃ 的 c = 30 Å）在横向画面里又窄又小：给 `crystalSlide` 传 `orientation: [0, Math.PI / 2, 0]`（弧度，欧拉角 XYZ）让长轴横过画面，再用 `zoom` 推近（Bi₂Te₃ 用 1.75）。此后 `fly.dir` / `fly.target` 都是旋转后的场景坐标。俯视用 `dir: [0.001, 0.001, 1]`（别用恰好 `[0,0,1]`，会退化）。
 - `show` 的 `cell/atoms/bonds/polyhedra` 是 0..1 的目标可见度；`dim: ['Sr']` 压暗某元素；`dim: []` 全部恢复。
 - 拖动旋转、滚轮缩放；deck 会区分“拖动”和“点击”，拖动不会翻页。
+- 晶体 → 图：步骤里 `nodes: 0..1` 把球棍模型平滑变成“图”（原子变小圆点、键变细）；`gnn: { center, hops }` 以某原子（下标或元素符号）为中心按跳数着色，超出 `hops` 的原子压暗，演示 GNN 消息传递的感受野逐轮扩大。图结构与 BFS 在 `graph.ts`（`atomGraph` / `hopDistances` / `receptiveField`，有单测）。
 - 步骤里还可以声明（后一步继承前一步，`null` 取消）：`labels`（元素标签，引线连到代表原子）、`labelFor`、`axes`（a/b/c 晶格矢量箭头）、`highlight: { els?, indices? }`（放大 + 描边，其余不变暗）、`layer: { axis, from, to }`（按分数坐标区间聚焦一层，其余压暗到 0.1）；`crystalSlide({ legend: true })` 给元素图例；超胞用 `options: { repeat: [2, 2, 1] }`。
 
 ## 已知坑

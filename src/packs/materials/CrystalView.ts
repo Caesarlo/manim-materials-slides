@@ -9,6 +9,8 @@
 //   view.setAxes(1)                                                 // a、b、c 晶格矢量箭头（从超胞原点出发）
 //   view.highlight({ els: ['Ti'], indices: [3] })                   // 点名强调：放大 1.25 倍 + 描边，其余不变暗；null 取消
 //   view.focusLayer({ axis: 'z', from: 0.2, to: 0.47 })             // 按层聚焦：区间外压暗到 0.1；null 取消
+//   view.setNodes(1)                                                // 0..1：球棍 → “图”（原子缩成小圆点、键变细、晶胞线与多面体淡出）
+//   view.setGnn({ center: 'Ti', hops: 1 })                         // 消息传递：按跳数着色，超出 hops 的压暗到 0.12；null 取消
 //   view.dispose()                                                  // 必须在 destroy 里调用
 //
 // 构造时可传 { orientation: [rx, ry, rz] }（弧度，欧拉角 XYZ）整体旋转模型：例如很“高”的层状晶胞（c 轴 30 Å）
@@ -20,6 +22,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { ConvexGeometry } from 'three/addons/geometries/ConvexGeometry.js'
 import { palette } from '@/runtime/palette'
 import { layerMask, type Built, type LayerSpec, type Vec3 } from './structure'
+import { atomGraph, gnnLevels, hopDistances, resolveCenter, type AtomGraph } from './graph'
 import { elementsOf, layoutRow, pickLabelAtom, resolveHighlight, type HighlightSpec, type ScreenAtom } from './labels'
 
 export type Parts = 'cell' | 'atoms' | 'bonds' | 'polyhedra'
@@ -27,6 +30,13 @@ export type Parts = 'cell' | 'atoms' | 'bonds' | 'polyhedra'
 const RADIUS: Record<string, number> = { O: 0.42, Ti: 0.5, Sr: 0.7, Ba: 0.75, Bi: 0.68, Te: 0.62, Se: 0.55, Pb: 0.7, Sn: 0.6, Si: 0.5 }
 const HL_SCALE = 0.25 // 高亮放大 1.25 倍
 const LAYER_DIM = 0.1
+const NODE_R = 0.3 // nodes=1 时原子半径（Å）
+const NODE_BOND = 0.55 // nodes=1 时键的粗细比例
+const GNN_DIM = 0.12 // 超出 hops 的原子/键
+const GNN_TINT = 0.55 // 跳数越远越向白色靠拢的最大比例
+const GNN_CENTER_SCALE = 0.6 // gnn 中心原子额外放大
+const GNN_BOND_SCALE = 1.2 // 已到达的键额外加粗
+const mix = (a: number, b: number, t: number) => a + (b - a) * t
 const AXIS_COLORS = [palette.accent, palette.amber, palette.teal]
 const AXIS_NAMES = ['a', 'b', 'c']
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
@@ -50,13 +60,24 @@ export class CrystalView {
   }
   private elOp = new Map<string, { cur: number; to: number }>()
   private atomMats: { mesh: THREE.Mesh; mat: THREE.MeshStandardMaterial; el: string }[] = []
-  private bondMats: { mat: THREE.MeshStandardMaterial; el: string; atom: number }[] = []
+  private bondMats: { mat: THREE.MeshStandardMaterial; mesh: THREE.Mesh; base: THREE.Color; el: string; atom: number; bond: number }[] = []
   private polyMats: { mat: THREE.Material; base: number; center: string; atom: number }[] = []
   // 高亮 / 按层聚焦：每个原子一个平滑量
   private hl: { cur: number; to: number }[] = []
   private lay: { cur: number; to: number }[] = []
   private layerMaskNow: boolean[] = []
   private atomO: number[] = [] // 每个原子当前的有效不透明度
+  private atomR: number[] = [] // 每个原子当前的显示半径（Å）
+  // 图 / 消息传递：全部是“目标值 → 阻尼逼近”的平滑量，画面只由当前目标状态决定
+  private graph: AtomGraph
+  private nodesV = { cur: 0, to: 0 }
+  private gnnOn = { cur: 0, to: 0 }
+  private gnnLv: { cur: number; to: number }[] = [] // 每个原子的跳数强度（0 = 超出 hops）
+  private gnnCt: { cur: number; to: number }[] = [] // 每个原子是否中心
+  private gnnBd: { cur: number; to: number }[] = [] // 每根键是否“已到达”
+  private baseCol: THREE.Color[] = []
+  private accentCol = new THREE.Color(palette.accent)
+  private whiteCol = new THREE.Color(0xffffff)
   private shells: { mesh: THREE.Mesh; mat: THREE.MeshBasicMaterial }[] = []
   // 标签与晶格矢量
   private labelVis = { cur: 0, to: 0 }
@@ -71,6 +92,8 @@ export class CrystalView {
   constructor(host: HTMLElement, built: Built, opts: { orientation?: Vec3 } = {}) {
     this.host = host
     this.built = built
+    this.graph = atomGraph(built)
+    this.gnnBd = built.bonds.map(() => ({ cur: 0, to: 0 }))
     this.orient = new THREE.Euler(...(opts.orientation ?? [0, 0, 0]))
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
@@ -142,6 +165,9 @@ export class CrystalView {
       g.add(mesh)
       this.atomMats.push({ mesh, mat, el: a.el })
       this.hl.push({ cur: 0, to: 0 })
+      this.gnnLv.push({ cur: 0, to: 0 })
+      this.gnnCt.push({ cur: 0, to: 0 })
+      this.baseCol.push(new THREE.Color(palette.cpk[a.el] ?? palette.muted))
       this.lay.push({ cur: 1, to: 1 })
       // 高亮描边：略大的背面外壳球（只露出一圈轮廓）
       const sm = new THREE.MeshBasicMaterial({ color: palette.fg, transparent: true, opacity: 0, side: THREE.BackSide, depthWrite: false })
@@ -158,7 +184,7 @@ export class CrystalView {
     // 每根键从中点分成两半，各取所连原子的颜色（VESTA 风格）；每一半随自己那端原子的元素一起压暗
     const geo = new THREE.CylinderGeometry(0.09, 0.09, 1, 16)
     const up = new THREE.Vector3(0, 1, 0)
-    for (const [p, q] of this.built.bonds) {
+    this.built.bonds.forEach(([p, q], bi) => {
       const A = new THREE.Vector3(...this.built.atoms[p].pos)
       const B = new THREE.Vector3(...this.built.atoms[q].pos)
       const M = A.clone().add(B).multiplyScalar(0.5)
@@ -173,9 +199,9 @@ export class CrystalView {
         m.scale.set(1, from.distanceTo(to), 1)
         m.quaternion.setFromUnitVectors(up, to.clone().sub(from).normalize())
         g.add(m)
-        this.bondMats.push({ mat, el, atom: from === A ? p : q })
+        this.bondMats.push({ mat, mesh: m, base: new THREE.Color(mat.color), el, atom: from === A ? p : q, bond: bi })
       }
-    }
+    })
   }
 
   private buildPolyhedra(g: THREE.Group) {
@@ -284,8 +310,22 @@ export class CrystalView {
     this.layerMaskNow.forEach((on, i) => { this.lay[i].to = on ? 1 : LAYER_DIM })
   }
 
+  /** 球棍 → 图：0..1 */
+  setNodes(v: number) { this.nodesV.to = v }
+
+  /** 消息传递：以 center 为中心按跳数着色，超出 hops 的压暗；null 取消（淡出，保留上次的跳数分布以便平滑） */
+  setGnn(spec: { center: number | string; hops: number } | null) {
+    if (!spec || resolveCenter(this.built, spec.center) < 0) { this.gnnOn.to = 0; return }
+    const c = resolveCenter(this.built, spec.center)
+    this.gnnOn.to = 1
+    const lv = gnnLevels(this.built, this.graph, spec)
+    lv.forEach((v, i) => { this.gnnLv[i].to = v; this.gnnCt[i].to = i === c ? 1 : 0 })
+    const d = hopDistances(this.graph, c)
+    this.built.bonds.forEach(([p, q], bi) => { this.gnnBd[bi].to = d[p] <= spec.hops && d[q] <= spec.hops ? 1 : 0 })
+  }
+
   private smooths(): { cur: number; to: number }[] {
-    return [...this.hl, ...this.lay, this.labelVis, this.axesVis, ...this.labelEls.values()]
+    return [this.nodesV, this.gnnOn, ...this.gnnLv, ...this.gnnCt, ...this.gnnBd, ...this.hl, ...this.lay, this.labelVis, this.axesVis, ...this.labelEls.values()]
   }
 
   /** 立即到位（跳转用，不做过渡） */
@@ -345,7 +385,7 @@ export class CrystalView {
         const s = this.toScreen(new THREE.Vector3(...a.pos))
         const w = new THREE.Vector3(...a.pos).sub(new THREE.Vector3(...this.built.center)).applyEuler(this.orient).applyMatrix4(this.camera.matrixWorldInverse)
         const depth = Math.max(-w.z, 1e-3)
-        const r = (RADIUS[a.el] ?? 0.5) * (1 + HL_SCALE * this.hl[i].cur)
+        const r = this.atomR[i] ?? (RADIUS[a.el] ?? 0.5)
         return { x: s.x, y: s.y, r: (r * (h / 2)) / (depth * tanHalf), depth, shown: this.atomO[i] > 0.4 }
       })
       // 标签排成一行放在结构上方，用引线连到各自的原子（引线细、颜色同元素）
@@ -405,17 +445,25 @@ export class CrystalView {
 
   // ---- 循环 ------------------------------------------------------------
   private applyOpacity() {
-    this.cellMat.opacity = this.vis.cell.cur * 0.8
-    this.cell.visible = this.vis.cell.cur > 0.01
+    const N = this.nodesV.cur, G = this.gnnOn.cur
+    this.cellMat.opacity = this.vis.cell.cur * 0.8 * (1 - N)
+    this.cell.visible = this.cellMat.opacity > 0.01
     const A = this.vis.atoms.cur
     this.atomMats.forEach((a, i) => {
-      const o = (this.elOp.get(a.el)?.cur ?? 1) * this.lay[i].cur * A
+      const lv = this.gnnLv[i].cur, ct = this.gnnCt[i].cur * G
+      const og = mix(1, GNN_DIM + (1 - GNN_DIM) * Math.pow(lv, 0.2), G) // 中心 1，跳数越远越淡，超出 hops → 0.12
+      const o = (this.elOp.get(a.el)?.cur ?? 1) * this.lay[i].cur * A * og
       a.mat.opacity = o
+      // 跳数越远颜色越浅（向白色靠拢）；中心原子换成 accent
+      a.mat.color.copy(this.baseCol[i])
+      if (G > 0.001) a.mat.color.lerp(this.whiteCol, G * (1 - lv) * GNN_TINT)
+      if (ct > 0.001) a.mat.color.lerp(this.accentCol, ct)
       this.atomO[i] = o
       a.mesh.visible = o > 0.01
       a.mat.depthWrite = o > 0.95
       const k = this.hl[i].cur
-      const sc = (RADIUS[a.el] ?? 0.5) * (1 + HL_SCALE * k)
+      const sc = mix(RADIUS[a.el] ?? 0.5, NODE_R, N) * (1 + HL_SCALE * k) * (1 + GNN_CENTER_SCALE * ct)
+      this.atomR[i] = sc
       a.mesh.scale.setScalar(sc)
       const sh = this.shells[i]
       sh.mesh.scale.setScalar(sc * 1.16)
@@ -423,9 +471,15 @@ export class CrystalView {
       sh.mesh.visible = sh.mat.opacity > 0.01
     })
     for (const b of this.bondMats) {
-      b.mat.opacity = this.vis.bonds.cur * (this.elOp.get(b.el)?.cur ?? 1) * this.lay[b.atom].cur * A
+      const reach = this.gnnBd[b.bond].cur * G
+      b.mat.opacity = this.vis.bonds.cur * (this.elOp.get(b.el)?.cur ?? 1) * this.lay[b.atom].cur * A * mix(1, mix(GNN_DIM, 1, this.gnnBd[b.bond].cur), G)
+      const th = mix(1, NODE_BOND, N) * (1 + GNN_BOND_SCALE * reach)
+      b.mesh.scale.x = th
+      b.mesh.scale.z = th
+      if (reach > 0.001) b.mat.color.copy(b.base).lerp(this.accentCol, reach)
+      else b.mat.color.copy(b.base)
     }
-    for (const p of this.polyMats) p.mat.opacity = this.vis.polyhedra.cur * p.base * (this.elOp.get(p.center)?.cur ?? 1) * this.lay[p.atom].cur
+    for (const p of this.polyMats) p.mat.opacity = this.vis.polyhedra.cur * (1 - N) * p.base * (this.elOp.get(p.center)?.cur ?? 1) * this.lay[p.atom].cur
     for (const m of this.axesMats) m.opacity = this.axesVis.cur
     this.axesGroup.visible = this.axesVis.cur > 0.01
   }

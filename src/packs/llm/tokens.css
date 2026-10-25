@@ -1,0 +1,6 @@
+/* 词元条 + 注意力热图 */
+.chart-svg .tok-text { fill: var(--fg); font-size: 56px; font-weight: 500; }
+.chart-svg .tok-id { fill: var(--muted); font-size: 32px; font-family: var(--mono, ui-monospace, 'SFMono-Regular', Consolas, monospace); text-anchor: middle; }
+.chart-svg .att-label { fill: var(--fg); font-size: 28px; }
+.chart-svg .att-title { fill: var(--muted); font-size: 28px; }
+.chart-svg .tr.att-bar { transition: width .6s ease, fill .5s; }

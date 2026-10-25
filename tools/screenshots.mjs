@@ -25,6 +25,15 @@ const SHOTS = [
   { talk: 'gallery', slide: 9, step: 4, file: 'chart-xrd', note: 'XRD：计算谱与实验谱对比' },
   { talk: 'gallery', slide: 10, step: 1, file: 'crystal-labels', note: '晶体：元素标签 + 图例' },
   { talk: 'gallery', slide: 11, step: 4, file: 'crystal-layer', note: '晶体：聚焦一个五重层' },
+  { talk: 'gallery', slide: 13, step: 4, file: 'crystal-gnn', note: '晶体 → 图：以 Ti 为中心，1 跳邻居收到消息' },
+  // 大模型组件画廊（gallery-llm）：页号顺序同 src/talks/gallery-llm/talk.ts
+  { talk: 'gallery-llm', slide: 1, step: 3, file: 'llm-tokens', note: '词元条：切分与 id' },
+  { talk: 'gallery-llm', slide: 2, step: 3, file: 'llm-attention', note: '注意力热图：聚焦一行' },
+  { talk: 'gallery-llm', slide: 3, step: 4, file: 'llm-next-token', note: '下一个词元的概率与选中' },
+  { talk: 'gallery-llm', slide: 4, step: 3, file: 'llm-temperature', note: '温度越高分布越发散，熵上升' },
+  { talk: 'gallery-llm', slide: 5, step: 7, file: 'llm-decoder', note: 'Decoder-only 整体流程' },
+  { talk: 'gallery-llm', slide: 6, step: 8, file: 'llm-block', note: '单个 Transformer 块与残差' },
+  { talk: 'gallery-llm', slide: 7, step: 6, file: 'llm-agent', note: 'Agent 编排回放：子任务失败后重试' },
   // 未选用：公式页第 4 步（O = AV，画面过空）
 ]
 

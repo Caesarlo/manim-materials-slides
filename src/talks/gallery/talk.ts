@@ -11,6 +11,7 @@ import { funnel } from './slides/funnel'
 import { xrd } from './slides/xrd'
 import { srtio3Slide, srtio3SupercellSlide } from './slides/srtio3'
 import { bi2te3Slide } from './slides/bi2te3'
+import { srtio3Gnn } from './slides/srtio3Gnn'
 
 export const talkTitle = '组件画廊'
 
@@ -32,4 +33,6 @@ export function register(deck: Deck) {
   deck.slide(srtio3Slide)
   deck.slide(bi2te3Slide)
   deck.slide(srtio3SupercellSlide)
+  // 晶体 → 图 → GNN 消息传递
+  deck.slide(srtio3Gnn)
 }

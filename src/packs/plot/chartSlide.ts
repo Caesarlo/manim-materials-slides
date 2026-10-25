@@ -31,6 +31,8 @@ export interface ChartSlideDef<S extends object> {
   name: string
   heading?: string
   notes?: string
+  /** 右下角小注（如“示意数据”），用 .deck-detail 样式 */
+  note?: string
   initial: S
   steps: ChartStep<S>[]
   create(host: HTMLElement, ctx: Ctx): ChartInstance<S>
@@ -50,6 +52,7 @@ export function chartSlide<S extends object>(def: ChartSlideDef<S>): SlideDef {
       frame.innerHTML = `
         <div class="chart-host"></div>
         ${def.heading ? `<h2 class="deck-heading">${ctx.esc(def.heading)}</h2>` : ''}
+        ${def.note ? `<p class="deck-detail" style="position:absolute;right:3%;bottom:2%;margin:0">${ctx.esc(def.note)}</p>` : ''}
         ${captions(def.steps.map((s) => s.caption), ctx.esc)}`
       const host = frame.querySelector<HTMLElement>('.chart-host')!
       const chart = def.create(host, ctx)

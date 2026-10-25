@@ -1,0 +1,5 @@
+/* Agent 编排回放：框内标签样式（颜色由脚本从 palette 写入） */
+.agent-svg .af-label { font-size: 34px; font-weight: 600; text-anchor: middle; dominant-baseline: central; }
+.agent-svg .af-pkt { transition: transform .7s ease, opacity .5s ease; }
+.agent-svg path, .agent-svg line { stroke-linecap: round; stroke-linejoin: round; }
+.chart-host.no-tr .af-pkt { transition: none !important; }

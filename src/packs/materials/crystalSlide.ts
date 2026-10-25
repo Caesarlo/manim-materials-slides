@@ -11,6 +11,8 @@
 //       { caption: '标签与晶格矢量', labels: 1, axes: 1 },                       // 元素标签 / a b c 箭头（0..1）
 //       { caption: '强调 Ti', highlight: { els: ['Ti'] } },                      // 放大 1.25 倍 + 描边，其余不变暗
 //       { caption: '一个五重层', layer: { axis: 'z', from: 0.2, to: 0.47 } },     // 区间外压暗到 0.1
+//       { caption: '晶体 = 图', nodes: 1 },                                      // 球棍 → 图（0..1）
+//       { caption: '消息传递', gnn: { center: 'Ti', hops: 1 } },                  // 按跳数着色，超出 hops 压暗；null 取消
 //     ],
 //     legend: true,                                                              // 左下角元素图例（随 dim 变淡）
 //   })
@@ -37,6 +39,10 @@ export interface CrystalStep {
   highlight?: HighlightSpec | null
   /** 按层聚焦：沿晶格矢量方向（x=a, y=b, z=c）的分数坐标区间（按整个超胞归一化），区间外压暗到 0.1；null 取消 */
   layer?: LayerSpec | null
+  /** 球棍 → “图”（0..1）：原子缩成小圆点、键变细、晶胞线与多面体淡出；省略沿用上一步 */
+  nodes?: number
+  /** 消息传递：以 center（原子下标，或元素符号 = 该元素第一个原子）为中心按跳数着色，超出 hops 的压暗到 0.12；null 取消；省略沿用上一步 */
+  gnn?: { center: number | string; hops: number } | null
 }
 
 export interface CrystalSlideDef {
@@ -93,6 +99,8 @@ export function crystalSlide(def: CrystalSlideDef): SlideDef {
           let labelFor: string[] | undefined
           let highlight: HighlightSpec | null = null
           let layer: LayerSpec | null = null
+          let nodes = 0
+          let gnn: CrystalStep['gnn'] = null
           for (const s of upto) {
             Object.assign(parts, s.show)
             if (s.dim) dim = s.dim
@@ -102,6 +110,8 @@ export function crystalSlide(def: CrystalSlideDef): SlideDef {
             if (s.axes !== undefined) axes = s.axes
             if (s.highlight !== undefined) highlight = s.highlight
             if (s.layer !== undefined) layer = s.layer
+            if (s.nodes !== undefined) nodes = s.nodes
+            if (s.gnn !== undefined) gnn = s.gnn
           }
           view.show(parts)
           view.dim(dim, 0.08)
@@ -109,6 +119,8 @@ export function crystalSlide(def: CrystalSlideDef): SlideDef {
           view.setAxes(axes)
           view.highlight(highlight)
           view.focusLayer(layer)
+          view.setNodes(nodes)
+          view.setGnn(gnn)
           legend?.forEach((row, el) => {
             row.style.transition = animate ? 'opacity .4s ease' : 'none'
             row.style.opacity = dim.includes(el) ? '0.2' : '1'

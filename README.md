@@ -50,6 +50,31 @@ npm run shots      # 重新生成 README 截图（docs/images/）
     <td width="50%"><img src="docs/images/crystal-labels.png" alt="晶体标签"><br><sub>晶体：元素标签（引线连到代表原子）+ 图例</sub></td>
     <td width="50%"><img src="docs/images/crystal-layer.png" alt="聚焦五重层"><br><sub>晶体：按层聚焦一个五重层，其余压暗</sub></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/crystal-gnn.png" alt="晶体图与消息传递"><br><sub>晶体 → 图 → GNN：以 Ti 为中心，1 跳邻居收到消息，其余压暗</sub></td>
+    <td width="50%"></td>
+  </tr>
+</table>
+
+### 大模型组件（`talks/gallery-llm`，数据均为示意数据）
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/llm-tokens.png" alt="词元条"><br><sub>词元条：切分成词元，下方是词表 id</sub></td>
+    <td width="50%"><img src="docs/images/llm-attention.png" alt="注意力热图"><br><sub>注意力热图：权重由缩放点积真实计算，聚焦一行看它关注谁</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/llm-next-token.png" alt="下一个词元"><br><sub>自回归：每轮的候选概率，选中的词元飞到前缀末尾</sub></td>
+    <td width="50%"><img src="docs/images/llm-temperature.png" alt="温度"><br><sub>温度采样：温度越高分布越发散，熵越大</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/llm-decoder.png" alt="Decoder-only"><br><sub>架构块图：Decoder-only，括出重复 N 次的层</sub></td>
+    <td width="50%"><img src="docs/images/llm-block.png" alt="Transformer 块"><br><sub>单个 Transformer 块：LayerNorm、注意力、前馈与两条残差</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/llm-agent.png" alt="Agent 回放"><br><sub>Agent 编排回放：并行子任务，失败后重试（消息格式同 harness 线程）</sub></td>
+    <td width="50%"></td>
+  </tr>
 </table>
 
 ## 操作
@@ -68,7 +93,8 @@ npm run shots      # 重新生成 README 截图（docs/images/）
 ## 演讲
 
 - **`?talk=example`**（默认）：标题 · 公式逐项变形（注意力）· 注意力弧线 · SrTiO₃ 钙钛矿 · Bi₂Te₃ 层状结构。
-- **`?talk=gallery`**：组件画廊，12 页——折线（含 CSV 数据链路）· 能带+态密度 · 散点 · 凸包 · 漏斗 · XRD · 晶体标签/矢量/高亮/按层聚焦/超胞。
+- **`?talk=gallery`**：图表 + 晶体画廊，13 页——折线（含 CSV 数据链路）· 能带+态密度 · 散点 · 凸包 · 漏斗 · XRD · 晶体标签/矢量/高亮/按层聚焦/超胞 · 晶体图与 GNN 消息传递。
+- **`?talk=gallery-llm`**：大模型组件画廊，7 页——词元 · 注意力热图 · 自回归生成 · 温度采样 · 架构块图（整体 + 单块）· Agent 编排回放。
 
 ## 数据
 
@@ -106,7 +132,9 @@ deck.slide(crystalSlide({
 - [x] 运行时、白底设计语言、manim-web 舞台（含公式变形）
 - [x] 材料包：CIF→数据、球棍/晶胞/配位多面体、相机运镜
 - [x] 材料包：折线(zT–T)、能带/态密度、散点、相图凸包、筛选漏斗、XRD；晶体标签/矢量/高亮/按层聚焦/超胞
-- [ ] 材料包：声子色散、晶体图→GNN 消息传递
-- [ ] 大模型包：词元条、注意力热图、自回归生成、Agent 日志回放（Maker→Verifier→Checker）
+- [x] 晶体图 → GNN 消息传递
+- [ ] 材料包：声子色散
+- [x] 大模型包：词元条、注意力热图、自回归与温度采样、架构块图、Agent 编排回放（含 LangChain 消息适配器）
+- [ ] 大模型包：训练管线时间线、嵌入空间散点、RAG 流程
 - [x] 自动检查：`npm run check`、`npm test`
 - [ ] 导出：逐步截图 / PDF 兜底
