@@ -19,8 +19,10 @@ export function niceTicks(min: number, max: number, count = 5): number[] {
   const pow = Math.pow(10, Math.floor(Math.log10(raw)))
   const f = raw / pow
   const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * pow
+  // 用整数下标生成（v = i × step）：不累加浮点误差，0 刻度恰为 0（不会出现 -6e-17）
   const out: number[] = []
-  for (let v = Math.ceil(min / step - 1e-9) * step; v <= max + step * 1e-9; v += step) out.push(Number(v.toPrecision(12)))
+  const i0 = Math.ceil(min / step - 1e-9), i1 = Math.floor(max / step + 1e-9)
+  for (let i = i0; i <= i1; i++) out.push(Number((i * step).toPrecision(12)) + 0)
   return out
 }
 

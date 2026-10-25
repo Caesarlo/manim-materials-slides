@@ -10,6 +10,13 @@ describe('niceTicks', () => {
   it('消除浮点误差（0.1+0.2 这类）', () => {
     for (const v of niceTicks(0, 1, 10)) expect(String(v).length).toBeLessThan(6)
   })
+  it('跨零的负数范围：0 刻度恰为 0（不是 -6e-17），刻度对称', () => {
+    const t = niceTicks(-0.5, 0.1, 6)
+    expect(t).toContain(0)
+    expect(t.every((v) => v === 0 || Math.abs(v) > 1e-6)).toBe(true)
+    expect(Object.is(t.find((v) => v === 0), 0)).toBe(true) // 不是 -0
+    expect(niceTicks(-1, 1, 4)).toEqual([-1, -0.5, 0, 0.5, 1])
+  })
   it('退化区间只返回一个点', () => {
     expect(niceTicks(3, 3)).toEqual([3])
   })
