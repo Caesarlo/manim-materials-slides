@@ -176,3 +176,4 @@ class Deck {
 }
 
 export const deck = new Deck()
+export type { Deck }

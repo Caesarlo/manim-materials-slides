@@ -9,7 +9,25 @@ npm run dev        # http://localhost:4100
 npm run build      # 类型检查 + 构建到 dist/，可离线放映（需静态服务器）
 npm test           # 单元测试
 npm run check      # 无头浏览器逐页逐步检查（控制台错误 + 跳转/点击两种路径画面一致）
+npm run shots      # 重新生成 README 截图（docs/images/）
 ```
+
+## 效果
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/formula-step2.png" alt="公式逐项变形"><br><sub>公式逐项变形：蓝色高亮 S，下方配旁白</sub></td>
+    <td width="50%"><img src="docs/images/attention-arcs.png" alt="注意力弧线"><br><sub>注意力弧线：线越粗权重越大，下方标百分比</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/srtio3-octahedron.png" alt="TiO6 八面体"><br><sub>SrTiO₃：镜头飞入，突出 TiO₆ 配位八面体</sub></td>
+    <td width="50%"><img src="docs/images/srtio3-top.png" alt="沿 c 轴俯视"><br><sub>SrTiO₃：沿 c 轴俯视，看原子排布的对称性</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/bi2te3-octahedra.png" alt="Bi2Te3 八面体"><br><sub>Bi₂Te₃：c 轴横置，BiTe₆ 八面体按层堆叠</sub></td>
+    <td width="50%"><img src="docs/images/bi2te3-layers.png" alt="Bi2Te3 层状结构"><br><sub>Bi₂Te₃ 侧视：五层一组，中间的缝隙是范德华间隙</sub></td>
+  </tr>
+</table>
 
 ## 操作
 
@@ -22,7 +40,7 @@ npm run check      # 无头浏览器逐页逐步检查（控制台错误 + 跳�
 | `S` | 演讲者备注 |
 | `F` | 全屏 |
 
-网址 `#/页/步` 可直达，如 `#/4/3`。拖动 3D 视图旋转、滚轮缩放，不会触发翻页。
+网址 `#/页/步` 可直达，如 `#/4/3`；`?talk=名称` 选择演讲（见 `src/talks/`，默认 `example`）。拖动 3D 视图旋转、滚轮缩放，不会触发翻页。
 
 ## 示例页
 
@@ -31,10 +49,10 @@ npm run check      # 无头浏览器逐页逐步检查（控制台错误 + 跳�
 ## 把你的结构放进来
 
 ```bash
-uv run tools/cif_to_ts.py my.cif src/talk/data/my.ts --export MyCrystal --name "显示名"
+uv run tools/cif_to_ts.py my.cif src/talks/example/data/my.ts --export MyCrystal --name "显示名"
 ```
 
-然后在 `src/talk/main.ts`：
+然后在 `src/talks/example/talk.ts` 的 `register()` 里：
 
 ```ts
 deck.slide(crystalSlide({

@@ -1,4 +1,4 @@
-// 常见结构的成键/配位规则。晶体数据本身由 tools/cif_to_ts.py 从 CIF 生成（见 src/talk/data/）。
+// 常见结构的成键/配位规则。晶体数据本身由 tools/cif_to_ts.py 从 CIF 生成（见 src/talks/example/data/）。
 import type { BuildOptions } from './structure'
 
 /** 钙钛矿 ABO3：B 位八面体 */

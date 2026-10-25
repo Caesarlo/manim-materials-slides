@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { build, cart } from './structure'
 import { Bi2Te3_opts, SrTiO3_opts } from './presets'
-import { SrTiO3 } from '@/talk/data/srtio3'
-import { Bi2Te3 } from '@/talk/data/bi2te3'
+import { SrTiO3 } from '@/talks/example/data/srtio3'
+import { Bi2Te3 } from '@/talks/example/data/bi2te3'
 
 const count = (b: ReturnType<typeof build>, el: string) => b.atoms.filter((a) => a.el === el).length
 

@@ -29,6 +29,8 @@ export interface CrystalSlideDef {
   steps: CrystalStep[]
   heading?: string
   notes?: string
+  /** 整体旋转模型（弧度，欧拉角 XYZ）。层状/细长晶胞转 90° 让长轴横过画面 */
+  orientation?: Vec3
 }
 
 export function crystalSlide(def: CrystalSlideDef): SlideDef {
@@ -42,7 +44,7 @@ export function crystalSlide(def: CrystalSlideDef): SlideDef {
         <div class="view3d"></div>
         ${def.heading ? `<h2 class="deck-heading">${esc(def.heading)}</h2>` : ''}
         ${captions(def.steps.map((s) => s.caption), esc)}`
-      const view = new CrystalView(frame.querySelector('.view3d')!, build(def.crystal, def.options))
+      const view = new CrystalView(frame.querySelector('.view3d')!, build(def.crystal, def.options), { orientation: def.orientation })
       view.show({ cell: 0, atoms: 0, bonds: 0, polyhedra: 0 })
       view.snap()
 

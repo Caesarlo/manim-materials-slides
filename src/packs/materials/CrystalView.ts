@@ -7,6 +7,9 @@
 //   view.onRender = () => { const p = view.project(pos) }           // 给 HTML 标签定位
 //   view.dispose()                                                  // 必须在 destroy 里调用
 //
+// 构造时可传 { orientation: [rx, ry, rz] }（弧度，欧拉角 XYZ）整体旋转模型：例如很“高”的层状晶胞（c 轴 30 Å）
+// 在横向画面里又窄又小，绕 y 轴转 90° 让 c 轴横过画面即可铺满宽度。之后 flyTo 的 dir/target 都是旋转后的场景坐标。
+//
 // 单位是 Å，场景原点在超胞中心。拖动旋转、滚轮缩放（OrbitControls）；点击不影响翻页（deck 会区分拖动）。
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
@@ -28,6 +31,7 @@ export class CrystalView {
   private controls: OrbitControls
   private host: HTMLElement
   private raf = 0
+  private orient: THREE.Euler
   private last = performance.now()
   private ro: ResizeObserver
   private fly: { t0: number; ms: number; p0: THREE.Vector3; p1: THREE.Vector3; c0: THREE.Vector3; c1: THREE.Vector3; done: () => void } | null = null
@@ -41,9 +45,10 @@ export class CrystalView {
   private polyMats: { mat: THREE.Material; base: number; center: string }[] = []
   private cellMat = new THREE.LineBasicMaterial({ color: palette.muted, transparent: true })
 
-  constructor(host: HTMLElement, built: Built) {
+  constructor(host: HTMLElement, built: Built, opts: { orientation?: Vec3 } = {}) {
     this.host = host
     this.built = built
+    this.orient = new THREE.Euler(...(opts.orientation ?? [0, 0, 0]))
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
     this.renderer.setClearColor(0xffffff, 0)
@@ -58,9 +63,12 @@ export class CrystalView {
     this.scene.add(fill)
 
     const c = new THREE.Vector3(...built.center)
+    const outer = new THREE.Group() // 绕超胞中心整体旋转
+    outer.rotation.copy(this.orient)
+    this.scene.add(outer)
     const group = new THREE.Group()
     group.position.copy(c).multiplyScalar(-1) // 原点放在超胞中心
-    this.scene.add(group)
+    outer.add(group)
     this.buildCell(group)
     this.buildAtoms(group)
     this.buildBonds(group)
@@ -191,7 +199,7 @@ export class CrystalView {
 
   /** 超胞中心坐标系下的点 → host 内像素（用于 HTML 标签） */
   project(p: Vec3): { x: number; y: number; visible: boolean } {
-    const v = new THREE.Vector3(...p).sub(new THREE.Vector3(...this.built.center)).project(this.camera)
+    const v = new THREE.Vector3(...p).sub(new THREE.Vector3(...this.built.center)).applyEuler(this.orient).project(this.camera)
     const r = this.host.getBoundingClientRect()
     return { x: ((v.x + 1) / 2) * r.width, y: ((1 - v.y) / 2) * r.height, visible: v.z < 1 }
   }

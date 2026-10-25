@@ -5,7 +5,7 @@
 """CIF → src/packs/materials 的 Crystal 数据（TypeScript 模块）。
 
 用法（uv 会自动装 gemmi，不需要手动建环境）：
-    uv run tools/cif_to_ts.py path/to/Bi2Te3.cif src/talk/data/bi2te3.ts [--name "Bi₂Te₃"] [--export Bi2Te3]
+    uv run tools/cif_to_ts.py path/to/Bi2Te3.cif src/talks/example/data/bi2te3.ts [--name "Bi₂Te₃"] [--export Bi2Te3]
 
 做的事：按 CIF 里的空间群展开对称操作，得到晶胞内全部原子的分数坐标，再连同晶格矢量（Å，笛卡尔）
 写成 `Crystal` 对象。幻灯片里 import 它，交给 crystalSlide / build 使用。

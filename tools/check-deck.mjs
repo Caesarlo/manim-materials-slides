@@ -4,6 +4,7 @@
 //   npm run check                   # 全部页
 //   npm run check -- --slide 4      # 只检查第 4 页
 //   npm run check -- --no-compare   # 只看控制台错误，不做两种路径的画面对比（更快）
+//   npm run check -- --talk 名称    # 检查 src/talks/<名称>/（默认 example）
 //
 // 用本机的 Chrome（找不到则用 Edge），不需要下载浏览器。截图在 check/ 下（已 git 忽略）：
 //   live-页-步.png  点过来   jump-页-步.png  直接跳   diff-页-步.png  两者不一致时的差异图
@@ -17,6 +18,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 const args = process.argv.slice(2)
 const only = args.includes('--slide') ? Number(args[args.indexOf('--slide') + 1]) : null
 const compare = !args.includes('--no-compare')
+const talk = args.includes('--talk') ? args[args.indexOf('--talk') + 1] : 'example'
 const TOLERANCE = 0.001 // 两种路径的画面差异比例上限（0.1%）；目前各页实测均为 0.00%
 const SETTLE_MS = 1800 // 动画/3D 相机缓动收敛所需时间
 
@@ -54,7 +56,7 @@ async function openPage(hash) {
     if (m.type() === 'error') note(`[${where()}] console.error: ${m.text().slice(0, 200)}`)
   })
   page.on('pageerror', (e) => note(`[${where()}] 未捕获异常: ${String(e).slice(0, 200)}`))
-  await page.goto(url + hash)
+  await page.goto(`${url}?talk=${encodeURIComponent(talk)}${hash}`)
   await page.waitForFunction(() => window.__deck)
   return page
 }
@@ -71,7 +73,7 @@ const probe = await openPage('#/1/1')
 const slides = await probe.evaluate(() => window.__deck.slides)
 await probe.close()
 
-console.log(`检查 ${slides.length} 页（${url}）`)
+console.log(`检查演讲「${talk}」${slides.length} 页（${url}）`)
 let steps = 0
 for (let i = 1; i <= slides.length; i++) {
   if (only && i !== only) continue

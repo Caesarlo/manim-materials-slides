@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 4173",
     "test": "vitest run",
-    "check": "node tools/check-deck.mjs"
+    "check": "node tools/check-deck.mjs",
+    "shots": "node tools/screenshots.mjs"
   },
   "dependencies": {
     "katex": "^0.19.1",

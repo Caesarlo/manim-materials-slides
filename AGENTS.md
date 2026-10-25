@@ -20,7 +20,8 @@
 | `src/styles/deck.css` | 设计语言：以画面宽度 1% 为单位 `--u`，字号阶梯 `--t-*` |
 | `src/packs/materials/` | 材料包：`structure.ts`（晶体→原子/键/多面体）、`CrystalView.ts`（three.js）、`crystalSlide.ts`（声明式 3D 页）、`presets.ts`（成键规则） |
 | `src/packs/llm/` | 大模型包（待补：词元条、注意力热图、训练管线…） |
-| `src/talk/` | 一场演讲：`main.ts`（页面顺序）、`slides/*.ts`、`data/*.ts`（由脚本生成） |
+| `src/main.ts` | 入口：按 `?talk=名称` 加载 `src/talks/<名称>/talk.ts`，默认 `example` |
+| `src/talks/<名称>/` | 一场演讲：`talk.ts`（`register(deck)` 里按顺序注册页面）、`slides/*.ts`、`data/*.ts`（由脚本生成）。新建演讲 = 复制 `talks/example/` 改名，无需登记 |
 | `tools/cif_to_ts.py` | CIF → 晶体数据（`uv run`，自动装 gemmi，按空间群展开对称操作） |
 
 ## 幻灯片契约
@@ -42,7 +43,8 @@ export const x: SlideDef = {
   写“每一步的状态”，不要写“相对上一步的增量”。`animate=true` 才播放动画。
 - 第 1 步是进入该页时显示的画面。
 - 同一时刻只挂载当前页（WebGL 上下文有限），所以 `destroy` 必须写。
-- 新增一页：写 `SlideDef`（或用 `crystalSlide` 等工厂），在 `src/talk/main.ts` 里 `deck.slide(...)`。
+- 新增一页：写 `SlideDef`（或用 `crystalSlide` 等工厂），在 `src/talks/<名称>/talk.ts` 的 `register()` 里 `deck.slide(...)`。
+- 新增一场演讲：复制 `src/talks/example/` 为 `src/talks/<新名字>/`，改 `talkTitle` 和页面；用 `http://localhost:4100/?talk=<新名字>` 打开，`npm run check -- --talk <新名字>` 检查。
 
 ## 设计语言（用它，别重新发明）
 
@@ -77,11 +79,11 @@ const stage = manimStage(host, {
 
 ## 3D 晶体
 
-- 数据：`uv run tools/cif_to_ts.py x.cif src/talk/data/x.ts --export X --name "显示名"`，得到 `Crystal`（晶格矢量 Å + 分数坐标）。
+- 数据：`uv run tools/cif_to_ts.py x.cif src/talks/example/data/x.ts --export X --name "显示名"`，得到 `Crystal`（晶格矢量 Å + 分数坐标）。
 - 规则：`presets.ts` 里写成键/配位规则，如 `{ polyhedra: [{ center: 'Ti', ligand: 'O', max: 2.2 }] }`。
 - 页面：`crystalSlide({ name, crystal, options, steps: [{ caption, show, dim, fly }] })`。后面的步骤**继承**前面的设置，
   所以跳转时合并 1..step 即可，天然幂等。
-- 相机**z 轴朝上**（c 轴竖直）。俯视用 `dir: [0.001, 0.001, 1]`（别用恰好 `[0,0,1]`，会退化）。
+- 相机**z 轴朝上**（c 轴竖直）。很高/很长的晶胞（如 Bi₂Te₃ 的 c = 30 Å）在横向画面里又窄又小：给 `crystalSlide` 传 `orientation: [0, Math.PI / 2, 0]`（弧度，欧拉角 XYZ）让长轴横过画面，再用 `zoom` 推近（Bi₂Te₃ 用 1.75）。此后 `fly.dir` / `fly.target` 都是旋转后的场景坐标。俯视用 `dir: [0.001, 0.001, 1]`（别用恰好 `[0,0,1]`，会退化）。
 - `show` 的 `cell/atoms/bonds/polyhedra` 是 0..1 的目标可见度；`dim: ['Sr']` 压暗某元素；`dim: []` 全部恢复。
 - 拖动旋转、滚轮缩放；deck 会区分“拖动”和“点击”，拖动不会翻页。
 
@@ -112,7 +114,7 @@ npm run dev        # http://localhost:4100   #/页/步 直达，如 #/4/3
 
 ## 约定
 
-- 通用的东西放 `src/runtime` 或 `src/packs`；某一场演讲的内容只放 `src/talk`。
-- 新的可复用组件：放进对应 `packs/`，文件头写用法注释，并在 `src/talk` 里放一个示范。
+- 通用的东西放 `src/runtime` 或 `src/packs`；某一场演讲的内容只放 `src/talks/<名称>/`。
+- 新的可复用组件：放进对应 `packs/`，文件头写用法注释，并在 `src/talks/example/` 里放一个示范。
 - 数据用脚本生成，不手敲进幻灯片；在生成文件头和页面备注里写清来源。
 - 不引入 CDN；演示需离线可用（`npm run build` 后用任意静态服务器打开 `dist/`）。
