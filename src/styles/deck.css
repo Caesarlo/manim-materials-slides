@@ -1,0 +1,61 @@
+/* 设计语言：一切尺寸以画面宽度的 1% 为单位（--u），投影/全屏任何分辨率都等比缩放。
+   不要在幻灯片里写 px 或临时字号，用下面的字号阶梯。颜色用 var(--…)，来自 runtime/palette.ts。 */
+:root {
+  --font: 'Inter', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --mono: ui-monospace, 'Cascadia Mono', Consolas, Menlo, monospace;
+  --paper: #f1f3f6;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; } /* 否则 .deck-overview 的 display:grid 会盖过 hidden 属性 */
+html, body { margin: 0; height: 100%; background: var(--paper); overflow: hidden; }
+body { font-family: var(--font); color: var(--fg, #1a1d24); -webkit-font-smoothing: antialiased; }
+#app { position: fixed; inset: 0; display: grid; place-items: center; }
+
+.frame {
+  position: relative; width: min(100vw, 177.7778vh); aspect-ratio: 16 / 9; background: var(--bg, #fff);
+  container-type: size; overflow: hidden;
+  --u: 1cqw;
+  --t-display: calc(var(--u) * 6.4);
+  --t-heading: calc(var(--u) * 3.4);
+  --t-lead: calc(var(--u) * 2.8);
+  --t-caption: calc(var(--u) * 2.5);
+  --t-body: calc(var(--u) * 2.2);
+  --t-small: calc(var(--u) * 1.8);
+}
+.slide-host, .slide { position: absolute; inset: 0; }
+.slide { opacity: 0; transition: opacity .25s ease; }
+.slide.ready { opacity: 1; }
+
+/* 版面：标题居中偏上（可选），图占满，底部一句旁白 */
+.deck-stage { position: absolute; inset: 0; }
+.deck-stage canvas { display: block; }
+.deck-heading { position: absolute; top: 4.5%; left: 0; right: 0; margin: 0; text-align: center; font-size: var(--t-heading); font-weight: 500; }
+.deck-caption { position: absolute; bottom: 5%; left: 0; right: 0; margin: 0; text-align: center; font-size: var(--t-caption); font-weight: 500; }
+.deck-caption .katex, .deck-heading .katex, .deck-subtitle .katex { font-size: 1.08em; } /* 行内公式与正文字号协调 */
+.deck-title { font-size: var(--t-display); font-weight: 700; letter-spacing: -0.02em; margin: 0; }
+.deck-subtitle { font-size: var(--t-lead); color: var(--muted); margin: calc(var(--u) * 2) 0 0; font-weight: 400; }
+.deck-center { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+.deck-detail { font-size: var(--t-small); color: var(--detail); }
+.deck-accent { color: var(--accent); }
+.deck-mono { font-family: var(--mono); }
+
+/* 逐步显现 */
+.reveal-in { opacity: 0; transform: translateY(calc(var(--u) * 0.6)); transition: opacity .55s ease, transform .55s ease; transition-delay: calc(var(--i, 0) * .08s); }
+.reveal-in.in { opacity: 1; transform: none; }
+
+/* 3D 视图 */
+.view3d { position: absolute; inset: 0; }
+.view3d canvas { display: block; width: 100%; height: 100%; }
+.interactive .view3d canvas { cursor: grab; }
+.interactive .view3d canvas:active { cursor: grabbing; }
+.label3d { position: absolute; transform: translate(-50%, -50%); font-size: var(--t-caption); font-weight: 600; white-space: nowrap; pointer-events: none; transition: opacity .4s ease; }
+
+/* 备注 / 总览 / 忙碌指示 */
+.deck-notes { position: fixed; left: 0; right: 0; bottom: 0; padding: 14px 24px; font-size: 18px; line-height: 1.5; background: rgba(26, 29, 36, .94); color: #fff; z-index: 10; white-space: pre-wrap; }
+.deck-overview { position: fixed; inset: 0; z-index: 20; background: rgba(255, 255, 255, .96); display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; padding: 32px; align-content: start; overflow: auto; }
+.deck-overview button { text-align: left; padding: 16px 18px; border: 2px solid var(--line); border-radius: 12px; background: #fff; font: inherit; font-size: 18px; cursor: pointer; display: grid; gap: 4px; }
+.deck-overview button.cur { border-color: var(--accent); }
+.deck-overview b { color: var(--accent); }
+.deck-overview small { color: var(--muted); }
+.deck-busy { position: fixed; right: 14px; bottom: 14px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); opacity: 0; transition: opacity .2s; }
+body.busy .deck-busy { opacity: .5; }
