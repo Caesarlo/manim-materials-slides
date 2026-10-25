@@ -111,7 +111,7 @@
       "area": "repo",
       "title": "选定并添加许可证",
       "behavior": "仓库根目录有 LICENSE 文件，内容是使用者选定的许可证全文（版权行写使用者的名字和年份）；README 末尾有“许可证”一节写明类型；package.json 的 \"license\" 字段与之一致。",
-      "status": "not_started",
+      "status": "in_progress",
       "dependencies": [],
       "verification": [
         {
@@ -134,7 +134,24 @@
       },
       "blocker": null,
       "notes": "【任务书】先读：docs/guides/01-start-here.md、AGENTS.md、本 feature 的 behavior 与 verification。\n**这个任务需要使用者本人决定，不要自己选。**\n步骤：\n1. 向使用者提问：仓库打算公开还是仅自用？选哪种许可证？给出建议：公开且想最省事 → MIT（与依赖 manim-web / three.js / katex / vite 的 MIT 许可证兼容）；想要专利授权条款 → Apache-2.0；不公开 → 不加（那么把本 feature 标记为 blocked 并写明原因）。\n2. 得到明确答复后：在项目根目录新建 LICENSE（用该许可证的标准全文，版权行用使用者的名字，年份用当年；使用者的名字向使用者确认，不要猜）。\n3. package.json 增加 \"license\": \"MIT\"（或所选类型）。\n4. README.md 末尾加一节“## 许可证”，一句话写明类型并链接 LICENSE。\n5. 提交（不要推送）。\n改哪些文件：LICENSE（新）、package.json、README.md。\n验收：`node -e \"require('fs').accessSync('LICENSE')\"` 成功；`npm run verify` 仍通过；使用者已确认。\n常见坑：不要擅自选许可证或填版权人；不要改动依赖的许可证文件。\n收尾照 docs/guides/05-definition-of-done.md：先 `feature start`，做完跑全部检查并**亲眼看截图**，提交（不要推送），再 verify → evidence manual → review record → feature complete。",
-      "evidence": []
+      "evidence": [
+        {
+          "kind": "test",
+          "command": "node -e \"require('fs').accessSync('LICENSE')\"",
+          "result": "passed",
+          "recorded_at": "2026-10-25T10:36:51.876Z",
+          "exit_code": 0,
+          "commit_sha": "d585b54d433c4b1c9a5b26c04b969d14f87d94e1"
+        }
+      ],
+      "claim": {
+        "id": "e92bb473-8a09-4720-82af-5dc8fba9aa9a",
+        "owner": "agent",
+        "actor_id": "claude-main",
+        "claimed_at": "2026-10-25T10:36:08.494Z",
+        "lease_until": "2026-10-25T12:36:08.494Z"
+      },
+      "owner": "agent"
     },
     {
       "id": "M1-OFFLINE-001",

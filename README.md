@@ -138,3 +138,7 @@ deck.slide(crystalSlide({
 - [ ] 大模型包：训练管线时间线、嵌入空间散点、RAG 流程
 - [x] 自动检查：`npm run check`、`npm test`
 - [ ] 导出：逐步截图 / PDF 兜底
+
+## 许可证
+
+[MIT](LICENSE)。依赖的 manim-web、three.js、KaTeX、Vite 也都是 MIT 许可证。

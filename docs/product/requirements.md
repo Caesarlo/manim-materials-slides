@@ -51,7 +51,7 @@
 
 ## Assumptions & Open Questions
 
-- [Open] 仓库许可证尚未选定（NFR-6，feature M1-LICENSE-001，需要使用者决定）。
+- [Resolved] 仓库许可证：使用者于 2026-10-25 选定 MIT，版权人 Caesarlo（NFR-6，feature M1-LICENSE-001）。
 - [Open] 离线放映（FR-12）、导出兜底（FR-13）、演讲者视图（FR-14）尚未实现，见 feature M1-*。
 - [Open] 用真实线程 JSON 验证 Agent 适配器（目前只用手写的、字段名与 harness 一致的消息数组）。
 - [Assumption] 放映用 Chrome / Edge；无头检查用本机 Chrome（找不到则用 Edge）。
