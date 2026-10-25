@@ -31,7 +31,16 @@ export interface Built {
   center: Vec3
   /** 包围球半径（Å） */
   radius: number
+  /** 单个晶胞的晶格矢量 a, b, c（Å，原点为 corners[0]） */
+  lattice: [Vec3, Vec3, Vec3]
+  /** 超胞矢量 = 晶格矢量 × repeat，分数坐标 / 层区间按它归一化 */
+  supercell: [Vec3, Vec3, Vec3]
+  repeat: Vec3
 }
+
+export type Axis = 'x' | 'y' | 'z'
+/** 按层聚焦：沿晶格矢量（x=a, y=b, z=c）的分数坐标区间，按整个超胞归一化到 0..1 */
+export interface LayerSpec { axis: Axis; from: number; to: number }
 
 const EPS = 1e-4
 const dist = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])
@@ -101,5 +110,34 @@ export function build(c: Crystal, opts: BuildOptions = {}): Built {
     ...corners.map((p) => dist(p, center)),
     ...atoms.map((a) => dist(a.pos, center)),
   )
-  return { atoms, bonds, polyhedra, corners, center, radius }
+  const supercell = c.lattice.map((v, d) => v.map((x) => x * [nx, ny, nz][d])) as [Vec3, Vec3, Vec3]
+  return { atoms, bonds, polyhedra, corners, center, radius, lattice: c.lattice, supercell, repeat: [nx, ny, nz] }
+}
+
+/** 笛卡尔坐标 → 以 vectors 为基的分数坐标（cart 的逆，Cramer 法则）。 */
+export function toFrac(vectors: Crystal['lattice'], p: Vec3): Vec3 {
+  const [a, b, c] = vectors
+  const det3 = (u: Vec3, v: Vec3, w: Vec3) =>
+    u[0] * (v[1] * w[2] - v[2] * w[1]) - u[1] * (v[0] * w[2] - v[2] * w[0]) + u[2] * (v[0] * w[1] - v[1] * w[0])
+  const D = det3(a, b, c)
+  return [det3(p, b, c) / D, det3(a, p, c) / D, det3(a, b, p) / D]
+}
+
+const LAYER_EPS = 1e-3
+/** 分数坐标 frac 是否落在层区间内（闭区间，容差 1e-3）；没有区间 = 全部在内。区间 from>to 视为互换。 */
+export function inLayer(frac: number, layer: { from: number; to: number } | null | undefined): boolean {
+  if (!layer) return true
+  const lo = Math.min(layer.from, layer.to), hi = Math.max(layer.from, layer.to)
+  return frac >= lo - LAYER_EPS && frac <= hi + LAYER_EPS
+}
+
+/** 某原子沿 axis 的超胞分数坐标 */
+export function fracAlong(built: Built, atom: number, axis: Axis): number {
+  const f = toFrac(built.supercell, built.atoms[atom].pos)
+  return f['xyz'.indexOf(axis)]
+}
+
+/** 每个原子是否在层内；layer 为空时全部为 true */
+export function layerMask(built: Built, layer: LayerSpec | null | undefined): boolean[] {
+  return built.atoms.map((_, i) => !layer || inLayer(fracAlong(built, i, layer.axis), layer))
 }

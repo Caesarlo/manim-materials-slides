@@ -65,8 +65,13 @@ export function formatTick(v: number, step?: number): string {
   if (v === 0) return '0'
   const a = Math.abs(v)
   if (a >= 1e5 || a < 1e-3) return v.toExponential(0).replace('e+', '×10^').replace('e-', '×10^-').replace(/\^(-?\d+)/, (_, n) => sup(n))
-  const dec = step ? Math.max(0, -Math.floor(Math.log10(step) + 1e-9)) : Number.isInteger(v) ? 0 : 2
-  return v.toFixed(Math.min(dec, 4))
+  // 小数位数 = 步长本身需要的位数（0.25 → 2，0.5 → 1，100 → 0），这样 0.25、0.5、0.75 不会被四舍五入成 0.3、0.5、0.8
+  let dec = Number.isInteger(v) ? 0 : 2
+  if (step) {
+    dec = 0
+    while (dec < 6 && Math.abs(step * 10 ** dec - Math.round(step * 10 ** dec)) > 1e-9) dec++
+  }
+  return v.toFixed(dec)
 }
 
 const SUP: Record<string, string> = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' }

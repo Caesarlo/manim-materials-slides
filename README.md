@@ -8,11 +8,13 @@ npm install
 npm run dev        # http://localhost:4100
 npm run build      # 类型检查 + 构建到 dist/，可离线放映（需静态服务器）
 npm test           # 单元测试
-npm run check      # 无头浏览器逐页逐步检查（控制台错误 + 跳转/点击两种路径画面一致）
+npm run check      # 无头浏览器逐页逐步检查（控制台错误 + 跳转/点击两种路径画面一致）；加 -- --talk gallery 检查画廊
 npm run shots      # 重新生成 README 截图（docs/images/）
 ```
 
 ## 效果
+
+### 示例演讲（`talks/example`）
 
 <table>
   <tr>
@@ -29,6 +31,27 @@ npm run shots      # 重新生成 README 截图（docs/images/）
   </tr>
 </table>
 
+### 图表套件与晶体增强（`talks/gallery`，数据均为示意数据）
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/chart-zt.png" alt="zT–T 折线"><br><sub>折线：zT–T，直接标注曲线、标峰值、聚焦最优</sub></td>
+    <td width="50%"><img src="docs/images/chart-band.png" alt="能带与态密度"><br><sub>能带 + 态密度：自动找出带隙并判断直接/间接</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/chart-scatter.png" alt="性能散点"><br><sub>性能散点（对数轴）：框出目标区域，高亮落入其中的候选</sub></td>
+    <td width="50%"><img src="docs/images/chart-hull.png" alt="形成能凸包"><br><sub>形成能凸包：算出每个点离凸包的距离 E<sub>hull</sub></sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/chart-funnel.png" alt="筛选漏斗"><br><sub>筛选漏斗：逐级缩小，标出每一级通过率</sub></td>
+    <td width="50%"><img src="docs/images/chart-xrd.png" alt="XRD 谱"><br><sub>XRD 谱：计算谱与实验谱对比</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/crystal-labels.png" alt="晶体标签"><br><sub>晶体：元素标签（引线连到代表原子）+ 图例</sub></td>
+    <td width="50%"><img src="docs/images/crystal-layer.png" alt="聚焦五重层"><br><sub>晶体：按层聚焦一个五重层，其余压暗</sub></td>
+  </tr>
+</table>
+
 ## 操作
 
 | 按键 | 作用 |
@@ -42,9 +65,19 @@ npm run shots      # 重新生成 README 截图（docs/images/）
 
 网址 `#/页/步` 可直达，如 `#/4/3`；`?talk=名称` 选择演讲（见 `src/talks/`，默认 `example`）。拖动 3D 视图旋转、滚轮缩放，不会触发翻页。
 
-## 示例页
+## 演讲
 
-标题 · 公式逐项变形（注意力）· 注意力弧线 · SrTiO₃ 钙钛矿（晶胞→成键→八面体→俯视）· Bi₂Te₃ 层状结构。
+- **`?talk=example`**（默认）：标题 · 公式逐项变形（注意力）· 注意力弧线 · SrTiO₃ 钙钛矿 · Bi₂Te₃ 层状结构。
+- **`?talk=gallery`**：组件画廊，12 页——折线（含 CSV 数据链路）· 能带+态密度 · 散点 · 凸包 · 漏斗 · XRD · 晶体标签/矢量/高亮/按层聚焦/超胞。
+
+## 数据
+
+```bash
+uv run tools/cif_to_ts.py my.cif src/talks/example/data/my.ts --export MyCrystal   # 晶体：CIF → 结构数据
+uv run tools/csv_to_ts.py my.csv src/talks/example/data/my.ts --name myData        # 曲线：CSV → 折线图数据
+```
+
+用法和输出格式见 [tools/README.md](tools/README.md)。
 
 ## 把你的结构放进来
 
@@ -72,7 +105,8 @@ deck.slide(crystalSlide({
 
 - [x] 运行时、白底设计语言、manim-web 舞台（含公式变形）
 - [x] 材料包：CIF→数据、球棍/晶胞/配位多面体、相机运镜
-- [ ] 材料包：能带/态密度、热电 zT–T、相图/凸包、候选筛选漏斗、晶体图→GNN
+- [x] 材料包：折线(zT–T)、能带/态密度、散点、相图凸包、筛选漏斗、XRD；晶体标签/矢量/高亮/按层聚焦/超胞
+- [ ] 材料包：声子色散、晶体图→GNN 消息传递
 - [ ] 大模型包：词元条、注意力热图、自回归生成、Agent 日志回放（Maker→Verifier→Checker）
 - [x] 自动检查：`npm run check`、`npm test`
 - [ ] 导出：逐步截图 / PDF 兜底

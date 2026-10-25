@@ -65,6 +65,13 @@ describe('formatTick', () => {
     expect(formatTick(0.25, 0.05)).toBe('0.25')
     expect(formatTick(0)).toBe('0')
   })
+  it('步长 0.25 时保留 2 位小数，不会把 0.25/0.75 舍成 0.3/0.8', () => {
+    expect(formatTick(0.25, 0.25)).toBe('0.25')
+    expect(formatTick(0.75, 0.25)).toBe('0.75')
+    expect(formatTick(0.5, 0.25)).toBe('0.50')
+    expect(formatTick(0.125, 0.125)).toBe('0.125')
+    expect(formatTick(1500, 500)).toBe('1500')
+  })
   it('极大极小用 ×10ⁿ', () => {
     expect(formatTick(1e6)).toBe('1×10⁶')
     expect(formatTick(1e-4)).toBe('1×10⁻⁴')
