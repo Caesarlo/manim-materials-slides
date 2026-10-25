@@ -59,3 +59,17 @@ body { font-family: var(--font); color: var(--fg, #1a1d24); -webkit-font-smoothi
 .deck-overview small { color: var(--muted); }
 .deck-busy { position: fixed; right: 14px; bottom: 14px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); opacity: 0; transition: opacity .2s; }
 body.busy .deck-busy { opacity: .5; }
+
+/* ── 图表底座（packs/plot）：单位是 viewBox 单位，页面上 1 单位 ≈ 1.1 个 1080p 像素 ── */
+.chart-host { position: absolute; left: 4%; right: 4%; top: 6%; bottom: 14%; }
+.chart-svg { display: block; width: 100%; height: 100%; overflow: visible; font-family: var(--font); }
+.chart-svg .ax-line { stroke: var(--muted); stroke-width: 3; stroke-linecap: round; }
+.chart-svg .ax-tick { stroke: var(--muted); stroke-width: 3; }
+.chart-svg .ax-grid { stroke: var(--line); stroke-width: 2; stroke-dasharray: 6 8; }
+.chart-svg .tick-label { fill: var(--muted); font-size: 28px; }
+.chart-svg .fo { overflow: visible; }
+.chart-svg .fo-text { display: flex; flex-direction: column; font-size: 32px; line-height: 1.2; color: var(--fg); }
+.chart-svg .fo-text.ax-label { color: var(--muted); }
+.chart-svg .fo-text .katex { font-size: 1.05em; }
+.chart-svg .tr { transition: opacity .5s ease, stroke-dashoffset .9s ease, stroke .5s, fill .5s, stroke-width .5s, transform .6s ease; }
+.chart-host.no-tr .tr, .chart-host.no-tr * { transition: none !important; }

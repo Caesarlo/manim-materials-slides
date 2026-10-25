@@ -6,7 +6,7 @@
 //   npm run check -- --no-compare   # 只看控制台错误，不做两种路径的画面对比（更快）
 //   npm run check -- --talk 名称    # 检查 src/talks/<名称>/（默认 example）
 //
-// 用本机的 Chrome（找不到则用 Edge），不需要下载浏览器。截图在 check/ 下（已 git 忽略）：
+// 用本机的 Chrome（找不到则用 Edge），不需要下载浏览器。截图在 check/<演讲名>/ 下（已 git 忽略）：
 //   live-页-步.png  点过来   jump-页-步.png  直接跳   diff-页-步.png  两者不一致时的差异图
 import { mkdir, rm } from 'node:fs/promises'
 import { createServer } from 'vite'
@@ -22,8 +22,10 @@ const talk = args.includes('--talk') ? args[args.indexOf('--talk') + 1] : 'examp
 const TOLERANCE = 0.001 // 两种路径的画面差异比例上限（0.1%）；目前各页实测均为 0.00%
 const SETTLE_MS = 1800 // 动画/3D 相机缓动收敛所需时间
 
-await rm('check', { recursive: true, force: true })
-await mkdir('check', { recursive: true })
+// 每个演讲用自己的子目录（check/<talk>/），只清自己的，几个检查同时跑也不会互相删截图
+const out = `check/${talk}`
+await rm(out, { recursive: true, force: true })
+await mkdir(out, { recursive: true })
 
 const server = await createServer({ logLevel: 'error', server: { port: 0, host: '127.0.0.1' } })
 await server.listen()
@@ -63,10 +65,12 @@ async function openPage(hash) {
 
 async function settle(page) {
   await page.waitForFunction(() => !document.body.classList.contains('busy'), null, { timeout: 30000 })
+  // 整页淡入（.25s）结束后再开始计时；机器忙时曾截到半透明的画面
+  await page.waitForFunction(() => { const s = document.querySelector('.slide'); return !!s && getComputedStyle(s).opacity === '1' }, null, { timeout: 30000 })
   await page.waitForTimeout(SETTLE_MS)
 }
 
-const shot = async (page, name) => { await page.screenshot({ path: `check/${name}.png` }) }
+const shot = async (page, name) => { await page.screenshot({ path: `${out}/${name}.png` }) }
 
 // 先取页数/步数
 const probe = await openPage('#/1/1')
@@ -100,16 +104,16 @@ for (let i = 1; i <= slides.length; i++) {
     await shot(jump, `jump-${i}-${k}`)
     await jump.close()
 
-    const a = PNG.sync.read(readFileSync(`check/live-${i}-${k}.png`))
-    const b = PNG.sync.read(readFileSync(`check/jump-${i}-${k}.png`))
+    const a = PNG.sync.read(readFileSync(`${out}/live-${i}-${k}.png`))
+    const b = PNG.sync.read(readFileSync(`${out}/jump-${i}-${k}.png`))
     const diff = new PNG({ width: a.width, height: a.height })
     const bad = pixelmatch(a.data, b.data, diff.data, a.width, a.height, { threshold: 0.15 })
     const ratio = bad / (a.width * a.height)
     const ok = ratio <= TOLERANCE
     console.log(`  ${ok ? '✓' : '✗'} 第 ${k} 步  点过来 vs 直接跳：差异 ${(ratio * 100).toFixed(2)}%`)
     if (!ok) {
-      writeFileSync(`check/diff-${i}-${k}.png`, PNG.sync.write(diff))
-      problems.push(`[${i}/${k}] ${name}：两种路径画面不一致（${(ratio * 100).toFixed(2)}%），见 check/diff-${i}-${k}.png`)
+      writeFileSync(`${out}/diff-${i}-${k}.png`, PNG.sync.write(diff))
+      problems.push(`[${i}/${k}] ${name}：两种路径画面不一致（${(ratio * 100).toFixed(2)}%），见 ${out}/diff-${i}-${k}.png`)
     }
   }
 }
@@ -117,7 +121,7 @@ for (let i = 1; i <= slides.length; i++) {
 await browser.close()
 await server.close()
 
-console.log(`\n共检查 ${steps} 步，截图在 check/`)
+console.log(`\n共检查 ${steps} 步，截图在 ${out}/`)
 if (problems.length) {
   console.log(`\n发现 ${problems.length} 个问题：`)
   for (const p of [...new Set(problems)]) console.log('  - ' + p)

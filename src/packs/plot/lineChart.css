@@ -1,0 +1,6 @@
+/* 折线图：线条与参考线的静态样式（颜色由脚本按 palette 设置） */
+.chart-svg .line-path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.chart-svg .ref-line { stroke: var(--muted); stroke-width: 3; stroke-dasharray: 10 10; }
+.chart-svg .peak-dot { stroke: var(--bg); stroke-width: 4; }
+.chart-svg .fo-text.line-end { font-weight: 600; }
+.chart-svg .fo-text.peak-text { font-weight: 600; text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg), 0 0 3px var(--bg), 0 0 6px var(--bg), 0 0 6px var(--bg), 0 0 6px var(--bg); }

@@ -1,0 +1,7 @@
+/* 能带图专用样式 */
+.chart-svg .band-line { fill: none; stroke-linejoin: round; }
+.chart-svg .hs-line { stroke: var(--line); stroke-width: 2; }
+.chart-svg .ef-line { stroke: var(--muted); stroke-width: 3; stroke-dasharray: 14 10; }
+.chart-svg .gap-guide { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 4 8; }
+.chart-svg .gap-arrow { stroke: var(--fg); stroke-width: 4; fill: none; }
+.chart-svg .dos-axis { stroke: var(--muted); stroke-width: 3; }
