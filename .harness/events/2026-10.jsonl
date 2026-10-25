@@ -1,0 +1,17 @@
+{"event_id":"e3e61cef-3c61-4c70-8230-a507d0de353e","timestamp":"2026-10-25T09:34:58.538Z","actor":"35096","type":"feature.created","feature_id":"M1-CICHECK-001","milestone":"M1"}
+{"event_id":"1b55f15d-7d3b-424c-9d83-6d2a82e242d0","timestamp":"2026-10-25T09:35:06.915Z","actor":"35096","type":"feature.created","feature_id":"M1-EXPORT-001","milestone":"M1"}
+{"event_id":"b3d2259d-36f5-43f9-be24-a5075edd691a","timestamp":"2026-10-25T09:35:14.533Z","actor":"35096","type":"feature.created","feature_id":"M1-LICENSE-001","milestone":"M1"}
+{"event_id":"6beea64f-2ac4-4f55-9724-900386254113","timestamp":"2026-10-25T09:35:20.124Z","actor":"35096","type":"feature.created","feature_id":"M1-OFFLINE-001","milestone":"M1"}
+{"event_id":"abddc49e-ab19-43bf-954a-7914ffd22156","timestamp":"2026-10-25T09:35:27.748Z","actor":"35096","type":"feature.created","feature_id":"M1-PRESENTER-001","milestone":"M1"}
+{"event_id":"59d5b21c-353f-46aa-8e53-d830ee84dbb0","timestamp":"2026-10-25T09:35:38.980Z","actor":"35096","type":"feature.created","feature_id":"M2-GNNCUT-001","milestone":"M2"}
+{"event_id":"907562cf-3504-4bb3-973a-133a2f0ca4f0","timestamp":"2026-10-25T09:35:46.757Z","actor":"35096","type":"feature.created","feature_id":"M2-PHONON-001","milestone":"M2"}
+{"event_id":"58670e58-a605-4475-9b69-7c2675c1b9e0","timestamp":"2026-10-25T09:35:52.915Z","actor":"35096","type":"feature.created","feature_id":"M3-EMBED-001","milestone":"M3"}
+{"event_id":"597dbaa5-3fa3-441d-985f-f2f4bfe67d36","timestamp":"2026-10-25T09:36:00.625Z","actor":"35096","type":"feature.created","feature_id":"M3-RAG-001","milestone":"M3"}
+{"event_id":"03b0701e-70f6-4967-a77e-60eec4349a31","timestamp":"2026-10-25T09:36:06.757Z","actor":"35096","type":"feature.created","feature_id":"M3-THREAD-001","milestone":"M3"}
+{"event_id":"47147b4f-e24b-4005-a397-9303519e1ca2","timestamp":"2026-10-25T09:36:13.814Z","actor":"35096","type":"feature.created","feature_id":"M3-TRAIN-001","milestone":"M3"}
+{"event_id":"7a702b2b-605c-41ae-b5de-8b47ee703061","timestamp":"2026-10-25T09:45:19.003Z","actor":"35096","type":"feature.created","feature_id":"M0-RUNTIME-001","milestone":"M0"}
+{"event_id":"165a50ac-00eb-4bf2-b09f-512161cd2064","timestamp":"2026-10-25T09:45:39.872Z","actor":"35096","type":"feature.created","feature_id":"M0-FORMULA-001","milestone":"M0"}
+{"event_id":"0642da45-367c-4913-bded-d20f49cbaa7e","timestamp":"2026-10-25T09:45:45.049Z","actor":"35096","type":"feature.created","feature_id":"M0-CRYSTAL-001","milestone":"M0"}
+{"event_id":"e1d3bd21-6ad8-4729-8aea-4e128e99f571","timestamp":"2026-10-25T09:45:50.326Z","actor":"35096","type":"feature.created","feature_id":"M0-CHARTS-001","milestone":"M0"}
+{"event_id":"926c9bac-7cee-4cb5-aedf-3e537f86b4ae","timestamp":"2026-10-25T09:45:56.072Z","actor":"35096","type":"feature.created","feature_id":"M0-LLM-001","milestone":"M0"}
+{"event_id":"cb1f5048-fa30-4c68-93db-ba3a575cc87a","timestamp":"2026-10-25T09:46:01.919Z","actor":"35096","type":"feature.created","feature_id":"M0-DESIGN-001","milestone":"M0"}

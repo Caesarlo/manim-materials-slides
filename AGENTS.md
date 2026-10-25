@@ -1,6 +1,12 @@
 # AGENTS.md — 在这个仓库里工作的约定
 
+> **SDLC harness**：本仓库用 `sdlc-harness` 管理功能状态（`feature_list.json`）、会话记录（`progress.md`）和决策（`docs/adr/`）。
+> 开始工作前先读 [AGENTS.sdlc-harness.md](AGENTS.sdlc-harness.md)，并运行 `npx @caesarlo/sdlc-harness validate` 和 `status`。
+> 本项目的具体做法（轻量化配置、验证命令、CI 范围）见 [docs/adr/0007-sdlc-harness-light.md](docs/adr/0007-sdlc-harness-light.md)。
+
 给编码助手和人看的同一份规则。
+
+> **执行具体任务时先读 [docs/guides/](docs/guides/README.md)**（开工必读、新增图表/晶体效果/演讲的逐步手册、收尾清单、排错）。待办与任务书在 `feature_list.json`（`npx @caesarlo/sdlc-harness status` 查看下一步）。
 
 ## 这是什么
 

@@ -12,6 +12,7 @@ import { xrd } from './slides/xrd'
 import { srtio3Slide, srtio3SupercellSlide } from './slides/srtio3'
 import { bi2te3Slide } from './slides/bi2te3'
 import { srtio3Gnn } from './slides/srtio3Gnn'
+import { barDemo } from './slides/barDemo'
 
 export const talkTitle = '组件画廊'
 
@@ -35,4 +36,6 @@ export function register(deck: Deck) {
   deck.slide(srtio3SupercellSlide)
   // 晶体 → 图 → GNN 消息传递
   deck.slide(srtio3Gnn)
+  // 柱状图（也是新图表的最小参考实现）
+  deck.slide(barDemo)
 }

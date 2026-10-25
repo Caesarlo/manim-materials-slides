@@ -1,0 +1,14 @@
+{
+  "projectName": "manim-materials-slides",
+  "requiredAdrTopics": [],
+  "testStrategy": "isolated-tdd",
+  "defaultOwner": "agent",
+  "collaborationMode": "solo",
+  "deploymentMode": "none",
+  "observabilityMode": "none",
+  "commands": {
+    "bootstrap": "npm ci",
+    "verify": "npm run verify",
+    "health": ""
+  }
+}

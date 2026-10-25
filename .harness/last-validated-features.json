@@ -1,0 +1,649 @@
+{
+  "project": "manim-materials-slides",
+  "schema_version": "1.0",
+  "last_updated": "",
+  "evidence": [],
+  "rules": {
+    "wip_limit_per_owner": 1,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true,
+    "feature_should_fit_one_session": true,
+    "passing_is_monotonic": true,
+    "dependencies_must_be_passing_before_start": true
+  },
+  "rule_exceptions": {
+    "feature_should_fit_one_session": "Features matching *-SCOPE-001 or *-RELEASE-001 are planning-only placeholders: they exist to be decomposed before implementation and must never be marked passing themselves."
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "This is the only active implementation task for this feature's owner (see rules.wip_limit_per_owner).",
+    "blocked": "A documented blocker prevents progress.",
+    "passing": "Required behavior and verification have passed with evidence, including a review evidence entry."
+  },
+  "milestones": [
+    {
+      "id": "M0",
+      "title": "基线（已完成的工作）",
+      "objective": "把 2026-10-25 之前完成的能力用真实命令补上证据，让需求追溯完整。"
+    },
+    {
+      "id": "M1",
+      "title": "可靠的放映与交付",
+      "objective": "现场一定放得出来：离线单文件、导出兜底、演讲者视图；并定下许可证。"
+    },
+    {
+      "id": "M2",
+      "title": "材料包补全",
+      "objective": "补齐声子色散等材料图表，让晶体图的消息传递演示更完整。"
+    },
+    {
+      "id": "M3",
+      "title": "大模型包补全",
+      "objective": "补训练管线、嵌入空间、RAG 流程，并用真实线程验证 Agent 适配器。"
+    }
+  ],
+  "features": [
+    {
+      "id": "M1-CICHECK-001",
+      "milestone": "M1",
+      "area": "ci",
+      "title": "评估把无头检查放进 CI",
+      "behavior": "在 GitHub Actions（ubuntu + Chrome + 软件渲染）上试跑 `npm run check -- --talk example`，连续多次观察是否稳定；结论写成 ADR 0008（若决定纳入 CI，则同时修改 `.github/workflows/ci.yml` 并把 ADR 0004 标记为被部分取代）。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "manual",
+          "command": "让使用者允许推送，并在 GitHub Actions 上手动触发该检查 3 次",
+          "expected": "3 次结果一致：全部通过（则纳入 CI）；或出现误报/超时（则保持本地运行，并在 ADR 里写清原因）"
+        },
+        {
+          "type": "automated",
+          "command": "npx @caesarlo/sdlc-harness validate",
+          "expected": "harness 校验通过（ADR 与 CI 文件改动不破坏结构）"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#NFR-4"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【任务书】先读：docs/guides/01-start-here.md、AGENTS.md、本 feature 的 behavior 与 verification。\n**这个任务需要使用者允许推送到 GitHub，并在网页上观察 Actions；没有允许前不要推送。**\n步骤：\n1. 在 `.github/workflows/ci.yml` 里新增 job `check`（`needs: ci`，`runs-on: ubuntu-latest`，`timeout-minutes: 20`）：checkout（用与现有 job 相同的 pinned SHA）、setup-node 24、`npm ci`、`npm run check -- --talk example`；失败时用 `actions/upload-artifact` 上传 `check/`（用 pinned SHA 的版本）。同时给整个 workflow 加 `workflow_dispatch:` 触发方式，便于手动重复触发。\n2. 浏览器：ubuntu runner 自带 Google Chrome；`tools/check-deck.mjs` 的 `chromium.launch({ channel: 'chrome' })` 应该能直接用。若找不到，在 job 里加一步 `npx playwright-core install chrome`（不要装完整 playwright）。\n3. 请使用者推送后，在 Actions 页面手动触发 3 次，把结果（通过/失败、耗时、失败的步骤）记录下来。\n4. 写 `docs/adr/0008-ci-headless-check.md`（照 docs/adr/template.md）：结论、数据（3 次结果）、依据。若决定纳入：保留 job，并把 0004 的状态注明“CI 部分被 0008 取代”（按 ADR 规则：新建 0008 写 `supersedes: 0004`，再把 0004 的 status/superseded-by 更新）；若不纳入：删掉 job（保留 workflow_dispatch 也可以），0008 写明保持本地运行的理由。\n5. 更新 `docs/adr/README.md` 索引。\n改哪些文件：.github/workflows/ci.yml、docs/adr/0008-ci-headless-check.md（新）、docs/adr/README.md，可能还有 docs/adr/0004-verification-strategy.md（仅状态字段）。\n验收：见 verification。\n常见坑：软件渲染 WebGL 在 runner 上较慢，`SETTLE_MS`（tools/check-deck.mjs，1800）可能不够，导致“点过来 vs 直接跳”误报——这正是要评估的点，不要为了变绿而放宽 0.1% 的容差。\n收尾照 docs/guides/05-definition-of-done.md：先 `feature start`，做完跑全部检查并**亲眼看截图**，提交（不要推送），再 verify → evidence manual → review record → feature complete。",
+      "evidence": []
+    },
+    {
+      "id": "M1-EXPORT-001",
+      "milestone": "M1",
+      "area": "delivery",
+      "title": "逐步截图与 PDF 导出",
+      "behavior": "`npm run export -- --talk <名称>` 把一个演讲的每一页每一步截成 1920×1080 的 PNG（`export/<名称>/NNN-页-步.png`），并合成一个 PDF（`export/<名称>/<名称>.pdf`，每步一页，页面尺寸 1920×1080），作为现场放映设备出问题时的兜底。支持 `--steps last` 只导每页的最后一步。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "automated",
+          "command": "npm run export -- --talk example",
+          "expected": "输出 17 张 PNG 和 1 个 PDF；PDF 共 17 页，文件 > 100 KB"
+        },
+        {
+          "type": "manual",
+          "command": "用 PDF 阅读器翻看导出的 PDF",
+          "expected": "文字清晰，没有半透明的过渡帧，公式和 3D 画面完整"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#FR-13"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【任务书】先读：docs/guides/01-start-here.md、AGENTS.md、本 feature 的 behavior 与 verification。\n参考实现：`tools/screenshots.mjs`（启动 vite + 本机 Chrome + 截图）和 `tools/check-deck.mjs` 里的 `settle()`（等 body 不再 busy、整页淡入完成、再等 1800ms）。**不要新增依赖**，PDF 用 playwright 自带的 `page.pdf()`。\n步骤：\n1. 新建 `tools/export-talk.mjs`：解析参数 `--talk 名称`（默认 example）、`--steps all|last`（默认 all）、`--out 目录`（默认 `export/<名称>`）。\n2. 启动 vite（`createServer`，端口 0）与浏览器（先 chrome 后 msedge，参数同 screenshots.mjs）；打开 `?talk=名称` 读 `window.__deck.slides` 得到每页步数。\n3. 对每一页每一步：新开页面（视口 1920×1080）打开 `?talk=名称#/页/步`，`settle`，用 `page.locator('.frame').screenshot()` 截图，保存为 `NNN-页-步.png`（NNN 是 3 位序号）。\n4. 合成 PDF：用同一个浏览器新开一个页面，`page.setContent()` 一个 HTML：每张 PNG 放一个 `<section>`（`width:1920px;height:1080px;page-break-after:always;background:#fff`，`<img src=\"file:///…png\" style=\"width:100%;height:100%\">`），然后 `page.pdf({ path, width: '1920px', height: '1080px', printBackground: true })`。`setContent` 引用本地图片需要 file:// 绝对路径，或者把 PNG 读成 base64 data URI（更稳）。\n5. 一律在 try/finally 里关浏览器和 vite（否则会留下后台进程，导致文件夹无法重命名）。\n6. package.json 加 `\"export\": \"node tools/export-talk.mjs\"`；`.gitignore` 加 `export/`。\n7. 文档：README 命令表加一行；`docs/guides/01-start-here.md` 日常命令表加一行。\n改哪些文件：tools/export-talk.mjs（新）、package.json、.gitignore、README.md、docs/guides/01-start-here.md。\n验收：见 verification；`node -e` 检查 PDF 页数可以统计 `/Type /Page` 出现次数（不含 `/Pages`）。\n常见坑：3D 页要等相机收敛（settle 已处理）；PDF 里中文依赖系统字体，和浏览器一致；不要把 `export/` 提交进 git。\n收尾照 docs/guides/05-definition-of-done.md：先 `feature start`，做完跑全部检查并**亲眼看截图**，提交（不要推送），再 verify → evidence manual → review record → feature complete。",
+      "evidence": []
+    },
+    {
+      "id": "M1-LICENSE-001",
+      "milestone": "M1",
+      "area": "repo",
+      "title": "选定并添加许可证",
+      "behavior": "仓库根目录有 LICENSE 文件，内容是使用者选定的许可证全文（版权行写使用者的名字和年份）；README 末尾有“许可证”一节写明类型；package.json 的 \"license\" 字段与之一致。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "automated",
+          "command": "node -e \"require('fs').accessSync('LICENSE')\"",
+          "expected": "LICENSE 文件存在"
+        },
+        {
+          "type": "manual",
+          "command": "向使用者确认所选许可证",
+          "expected": "使用者在对话里明确同意该许可证类型"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#NFR-6"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【任务书】先读：docs/guides/01-start-here.md、AGENTS.md、本 feature 的 behavior 与 verification。\n**这个任务需要使用者本人决定，不要自己选。**\n步骤：\n1. 向使用者提问：仓库打算公开还是仅自用？选哪种许可证？给出建议：公开且想最省事 → MIT（与依赖 manim-web / three.js / katex / vite 的 MIT 许可证兼容）；想要专利授权条款 → Apache-2.0；不公开 → 不加（那么把本 feature 标记为 blocked 并写明原因）。\n2. 得到明确答复后：在项目根目录新建 LICENSE（用该许可证的标准全文，版权行用使用者的名字，年份用当年；使用者的名字向使用者确认，不要猜）。\n3. package.json 增加 \"license\": \"MIT\"（或所选类型）。\n4. README.md 末尾加一节“## 许可证”，一句话写明类型并链接 LICENSE。\n5. 提交（不要推送）。\n改哪些文件：LICENSE（新）、package.json、README.md。\n验收：`node -e \"require('fs').accessSync('LICENSE')\"` 成功；`npm run verify` 仍通过；使用者已确认。\n常见坑：不要擅自选许可证或填版权人；不要改动依赖的许可证文件。\n收尾照 docs/guides/05-definition-of-done.md：先 `feature start`，做完跑全部检查并**亲眼看截图**，提交（不要推送），再 verify → evidence manual → review record → feature complete。",
+      "evidence": []
+    },
+    {
+      "id": "M1-OFFLINE-001",
+      "milestone": "M1",
+      "area": "delivery",
+      "title": "离线单文件放映",
+      "behavior": "`npm run build:offline` 产出一个自包含的 HTML（脚本、样式、KaTeX 字体都内联），在断网的电脑上**双击**（file://）即可放映；`?talk=名称#/页/步` 在 file:// 下同样可用；三个内置演讲（example、gallery、gallery-llm）都能放映，3D 与公式正常。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "automated",
+          "command": "npm run build:offline && node tools/check-offline.mjs",
+          "expected": "在 file:// 打开 dist-offline/index.html，example 演讲每一步没有控制台错误，第 4 页有 WebGL canvas"
+        },
+        {
+          "type": "manual",
+          "command": "把 dist-offline/index.html 拷到另一台断网电脑双击打开，翻几页（含公式页和 3D 页）",
+          "expected": "能放映，公式与 3D 都正常"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#FR-12",
+        "docs/product/requirements.md#NFR-5"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【任务书】先读：docs/guides/01-start-here.md、AGENTS.md、本 feature 的 behavior 与 verification。\n背景：浏览器不允许在 file:// 下加载 `<script type=\"module\">`（跨域限制），所以现在 `dist/index.html` 双击是白屏，必须有静态服务器。\n目标：做一个**单文件**产物，所有 JS/CSS/字体内联，且不是 module 脚本，file:// 能直接打开。\n步骤（建议方案，可调整，但要满足验收）：\n1. 安装单文件插件：`npm i -D vite-plugin-singlefile`（本 feature 允许新增这一个 devDependency）。\n2. 新建 `vite.offline.config.ts`：基于现有 `vite.config.ts`（复用它的 alias、stub 插件、optimizeDeps 设置），再加 `viteSingleFile()` 插件，`build.outDir = 'dist-offline'`，`build.assetsInlineLimit = 100000000`（字体内联成 data URI），`build.rollupOptions.output.inlineDynamicImports = true`，`build.cssCodeSplit = false`。\n3. 入口 `src/main.ts` 用 `import.meta.glob('./talks/*/talk.ts')` 做动态导入，单文件构建不能有分包：改为在离线模式下 `{ eager: true }`。做法：`const talks = import.meta.env.MODE === 'offline' ? import.meta.glob('./talks/*/talk.ts', { eager: true }) : import.meta.glob(...)`，并适配后面的 `load()` 调用（eager 时模块已是对象）。离线构建用 `vite build -c vite.offline.config.ts --mode offline`。\n4. package.json 加脚本 `\"build:offline\": \"tsc --noEmit && vite build -c vite.offline.config.ts --mode offline\"`；`.gitignore` 加 `dist-offline`。\n5. 新建 `tools/check-offline.mjs`：仿照 `tools/screenshots.mjs` 的浏览器启动方式（playwright-core + 本机 Chrome，软件渲染参数），但**不起 vite**，直接 `page.goto('file:///…/dist-offline/index.html?talk=example#/4/3')`；监听 console error 与 pageerror，有一条就 exit 1；等 `window.__deck` 出现；断言第 4 页有 `canvas`；再切到 `?talk=gallery-llm` 同样检查；最后输出“离线检查通过”。\n6. 更新文档：README“操作/命令”加 `npm run build:offline`；`docs/guides/04-add-a-talk.md` 的“放映”一节改成“双击 dist-offline/index.html”；`docs/product/requirements.md` 里删掉对应的 [Open] 行。\n改哪些文件：vite.offline.config.ts（新）、src/main.ts（小改）、package.json、.gitignore、tools/check-offline.mjs（新）、README.md、docs/guides/04-add-a-talk.md、docs/product/requirements.md。\n验收：见 verification。额外：产物体积写进 progress.md（预计 8~12 MB，可接受）。\n常见坑：manim-web 的可选动态导入（pptxgenjs、typst）已在 vite.config.ts 里用空模块顶替，离线配置必须复用它，否则构建报错；KaTeX 字体要被内联，否则断网后公式字体缺失；`inlineDynamicImports` 与 `import.meta.glob` 的懒加载冲突，所以一定要 eager；不要改 `vite.config.ts` 影响正常的 dev。\n收尾照 docs/guides/05-definition-of-done.md：先 `feature start`，做完跑全部检查并**亲眼看截图**，提交（不要推送），再 verify → evidence manual → review record → feature complete。",
+      "evidence": []
+    },
+    {
+      "id": "M1-PRESENTER-001",
+      "milestone": "M1",
+      "area": "runtime",
+      "title": "演讲者视图",
+      "behavior": "按 P 在新窗口打开演讲者视图（网址带 `role=presenter`）：显示当前页（与主窗口同一画面）、下一页的页名与步数、演讲者备注、计时器（可暂停/重置）；两个窗口通过 BroadcastChannel 同步翻页（任一窗口翻页，另一个跟随，不会互相无限触发）。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "automated",
+          "command": "npm run verify",
+          "expected": "类型检查、全部单测、构建通过（含新增的计时格式化单测）"
+        },
+        {
+          "type": "automated",
+          "command": "node tools/check-presenter.mjs",
+          "expected": "无头浏览器开两个窗口，主窗口按 → 后演讲者窗口的 URL 哈希同步变化，反向亦然，无控制台错误"
+        },
+        {
+          "type": "manual",
+          "command": "在真实双屏上放映一个演讲，主窗口全屏，演讲者窗口放在第二块屏幕",
+          "expected": "同步无延迟，备注与计时正确，不影响主窗口画面"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#FR-14",
+        "docs/product/requirements.md#FR-11"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【任务书】先读：docs/guides/01-start-here.md、AGENTS.md、本 feature 的 behavior 与 verification。\n**这是少数允许修改 `src/runtime/` 的 feature**，但要最小改动并保持契约（docs/adr/0002）：不要改变 `enter(step, animate)` 的语义，保留 `window.__deck`。\n设计：\n- 主窗口：`?talk=X`；演讲者窗口：`?talk=X&role=presenter`（按 P 用 `window.open` 打开）。\n- 同步：`new BroadcastChannel('deck-sync')`。位置变化时广播 `{ slide, step, from: 窗口id }`；收到别的窗口的消息时调用 `deck.goto(slide, step)`，**并且不再广播**（用 `from` 过滤，或用一个 `applyingRemote` 标志），避免死循环。\n步骤：\n1. 纯逻辑（可单测）：新建 `src/runtime/clock.ts`，导出 `formatClock(ms: number): string`（`mm:ss`，超过 1 小时为 `h:mm:ss`，负数按 0）。单测 `src/runtime/clock.test.ts`：0→`00:00`，59_999→`00:59`，60_000→`01:00`，3_600_000→`1:00:00`。\n2. `src/runtime/deck.ts`：在 `run()` 成功更新 `this.pos` 之后触发一个可选回调 `onPosition?.(pos)`；`start()` 读取 `role`；增加方法 `goto` 已有，复用。键盘处理里加 `p/P`：打开演讲者窗口。\n3. 新建 `src/runtime/presenter.ts`：`setupSync(deck, role)`（建 BroadcastChannel，接线上面两个方向），`renderPresenterPanel(...)`：演讲者窗口里在现有画面右侧/下方渲染面板——下一页的页名与步数（来自 `window.__deck.slides`）、当前页备注（`SlideDef.notes`，需要从 deck 暴露一个 `currentNotes()`）、计时器（用 `formatClock`，按钮：开始/暂停、重置；计时用 `setInterval` 只更新**面板**文本，这是允许的，因为它不属于幻灯片状态）。\n4. `src/styles/deck.css`：加演讲者面板的样式（用 `--u` 单位和字号阶梯，颜色用变量）。\n5. 新建 `tools/check-presenter.mjs`：仿 `tools/check-deck.mjs` 启动 vite 与浏览器；开两个页面（一个主、一个 `role=presenter`，同一个浏览器上下文才能共享 BroadcastChannel，所以用 `context.newPage()` 两次）；主窗口 `keyboard.press('ArrowRight')` 后等 500ms，断言演讲者窗口的 `location.hash` 变了；反向再测一次；监听 console error。\n6. 文档：README 操作表加 `P`；AGENTS.md 的运行时说明加一句；`requirements.md` 的 FR-14 不用改。\n改哪些文件：src/runtime/deck.ts（小改）、src/runtime/presenter.ts（新）、src/runtime/clock.ts + clock.test.ts（新）、src/styles/deck.css、tools/check-presenter.mjs（新）、README.md、AGENTS.md。\n验收：见 verification。`npm run check -- --talk example` 也要仍然全部 0.00%（证明没破坏主窗口）。\n常见坑：BroadcastChannel 只在**同源同浏览器**的窗口间工作，file:// 下可能受限，先在 dev 服务器下做；收到远端消息时要用 `goto` 而不是模拟按键；窗口关闭时要 `channel.close()`；计时用真实时间差（`Date.now()`），不要累加 interval 次数。\n收尾照 docs/guides/05-definition-of-done.md：先 `feature start`，做完跑全部检查并**亲眼看截图**，提交（不要推送），再 verify → evidence manual → review record → feature complete。",
+      "evidence": []
+    },
+    {
+      "id": "M2-GNNCUT-001",
+      "milestone": "M2",
+      "area": "materials",
+      "title": "按截断半径建图并画出非键边",
+      "behavior": "晶体 → 图的演示增加“按截断半径建图”：`crystalSlide` 的步骤里可声明 `cutoff: number | null`（Å）；声明后，除成键外，半径内的所有近邻原子对都画成细的灰色虚线边，`gnn` 的“跳数着色”也基于这张图计算（使 SrTiO₃ 以 Ti 为中心时 cutoff 3.0 Å 的第 2 轮能看到 8 个 Sr）。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "automated",
+          "command": "npx vitest run src/packs/materials/graph.test.ts",
+          "expected": "新增的 cutoff 建图测试通过（见任务书里的手算数）"
+        },
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk gallery --slide 13",
+          "expected": "GNN 页逐步差异 0.00%"
+        },
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk example --slide 4",
+          "expected": "没有回归，0.00%"
+        },
+        {
+          "type": "manual",
+          "command": "看新增步骤的截图",
+          "expected": "非键边是细灰虚线，不压住键和原子；被压暗的原子集合与手算一致"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#FR-8"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【任务书】先读：docs/guides/01-start-here.md、AGENTS.md、本 feature 的 behavior 与 verification。 再读 docs/guides/03-add-crystal-step-field.md（**完整照做**，本任务就是“新增一个步骤字段”）。\n已验证的手算数（SrTiO₃ 1×1×1，显示的 15 个原子：8 个 Sr、1 个 Ti、6 个 O；a = 3.905 Å）——**用它们写单测**：\n- 距离：Ti–O = a/2 = 1.9525；O–O 与 O–Sr = a/√2 = 2.7612；Ti–Sr = a√3/2 = 3.3818；Sr–Sr 与 O–O(对面) = a = 3.905。\n- `atomGraph(built, { cutoff })` 的边数：cutoff 2.2 → 6；3.0 → 42；3.5 → 50；4.0 → 65。\n- 以 Ti 为中心的 `hopDistances`：cutoff 2.2 → 1 跳 6 个、其余 8 个（Sr）不可达；cutoff 3.0 → 1 跳 6 个 O、2 跳 8 个 Sr；cutoff 3.5 → 1 跳 14 个（6 O + 8 Sr）、无 2 跳。\n步骤：\n1. `graph.test.ts` 先加上面这些断言（现有的 `atomGraph/cutoff` 实现应已满足；若不满足先修 `graph.ts`）。\n2. `CrystalView.ts`：新增 `setCutoff(cutoff: number | null)`：用 `atomGraph(this.built, { cutoff })` 得到边；**把不在 `built.bonds` 里的边**画成细的 `THREE.LineSegments`（`LineDashedMaterial`，调用 `computeLineDistances()`，颜色用 `palette.muted`），可见度走“目标值 + 阻尼”机制（参照 `setNodes`），`snap()` 同步；`setGnn` 里计算跳数时改用当前图（有 cutoff 用 cutoff 图，否则用成键图）。\n3. `crystalSlide.ts`：`CrystalStep` 加 `cutoff?: number | null`（省略沿用，null 取消），在 `enter` 里合并并调用 `view.setCutoff`。\n4. 示范：在 `src/talks/gallery/slides/srtio3Gnn.ts` 末尾**追加**步骤（不要改已有步骤，因为 README 截图用到第 13 页第 4 步）：`cutoff: 3.0` + `gnn: { center: 'Ti', hops: 2 }`，旁白如“按截断半径 3 Å 建图：第 2 轮看到 8 个 Sr”。\n改哪些文件：src/packs/materials/CrystalView.ts、crystalSlide.ts、graph.test.ts（必要时 graph.ts）、src/talks/gallery/slides/srtio3Gnn.ts、AGENTS.md（晶体一节加一句）。\n验收：见 verification；另外 `--slide 10/11/12` 也要 0.00%。\n常见坑：不要用时间驱动动画；非键边数量大（cutoff 4.0 有 65 条）也不要卡；边只画一次（i<j）。\n收尾照 docs/guides/05-definition-of-done.md：先 `feature start`，做完跑全部检查并**亲眼看截图**，提交（不要推送），再 verify → evidence manual → review record → feature complete。",
+      "evidence": []
+    },
+    {
+      "id": "M2-PHONON-001",
+      "milestone": "M2",
+      "area": "materials",
+      "title": "声子色散图",
+      "behavior": "新增声子色散图组件：纵轴频率（THz），横轴沿高对称路径；声学支与光学支用不同颜色；能标出声学–光学之间的带隙；频率为负（虚频，表示不稳定）的部分用红色标出并写“虚频”；逐步显现。带纯逻辑单测与画廊示范页（数据是用公式真实算出的一维双原子链，页面写“示意数据”）。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "automated",
+          "command": "npx vitest run src/packs/plot/phononMath.test.ts",
+          "expected": "新增单测全部通过"
+        },
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk gallery --slide 15",
+          "expected": "新页 15 逐步检查全部 0.00%，无控制台错误"
+        },
+        {
+          "type": "manual",
+          "command": "逐步查看 check/gallery/live-15-*.png",
+          "expected": "无遮挡/重叠；声学与光学颜色可区分；虚频部分清晰；右下角有“示意数据”"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#FR-5",
+        "docs/product/requirements.md#FR-9"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【任务书】先读：docs/guides/01-start-here.md、AGENTS.md、本 feature 的 behavior 与 verification。 再读 docs/guides/02-add-chart-component.md（**完整照做**）。\n参考实现：`src/packs/plot/bandChart.ts` + `bandMath.ts`（同样是“k 路径 + 多条能带 + 高对称点刻度”，**能直接参考它的布局和刻度写法**）。\n数据类型（放 phononMath.ts）：`PhononData { kpath: {label: string; k: number}[]; k: number[]; freqs: number[][] /* nBranches × nK，单位 THz，负数=虚频 */ }`。\n纯逻辑（phononMath.ts，必须单测）：\n- `branchKind(index, nAcoustic = 3)`：`'acoustic' | 'optical'`（前 nAcoustic 支为声学支）。一维链用 `nAcoustic = 1`。\n- `hasImaginary(freqs, tol = 1e-6)`：任一频率 < -tol 返回 true。\n- `findGaps(freqs, minSize = 0)`：对按 Γ 处频率排序后的相邻两支 i、i+1，若 `max_k(freqs[i]) < min_k(freqs[i+1])`，返回 `{ lower: i, upper: i+1, from: max_k(freqs[i]), to: min_k(freqs[i+1]), size: to-from }`；只返回 size > minSize 的。\n- `diatomicChain(m1, m2, C, nK)`：**一维双原子链的真实色散**：`w² = C(1/m1+1/m2) ± C·sqrt((1/m1+1/m2)² − 4·sin²(q/2)/(m1·m2))`，q ∈ [0, π]（沿 Γ→X）；返回 `{ k, freqs: [声学支, 光学支] }`（频率 = sqrt(w²)，转成相对单位即可）。\n- 测试用手算值（m1、m2 为两种原子质量，C=1）：\n  · m1=m2=1：q=π 处两支重合，都等于 √2 ≈ 1.41421（无带隙）；q=0 处声学支 0、光学支 √4=2。\n  · m1=1, m2=2：q=0 处声学支 0、光学支 √3 ≈ 1.73205；q=π 处声学支 = √(2C/m2) = 1，光学支 = √(2C/m1) = √2 ≈ 1.41421；因此带隙 from=1、to=√2，size = √2−1 ≈ 0.41421，`findGaps` 返回 1 个带隙；m1=m2 时 `findGaps` 返回空数组。\n  · `hasImaginary`：含 -0.5 的数据为 true，全部 ≥ 0 为 false。\n图表（phononChart.ts，基于 `ChartFrame`，state：`{ branches: boolean; kinds: boolean; gap: boolean; soft: boolean }`）：\n- `branches`：各支折线逐条画出（`prepareDraw/setDrawn`）；`kinds`：声学支 accent、光学支 amber（之前都用 muted）；`gap`：在带隙处画半透明矩形（两支之间）+ 文字 `$\\Delta\\omega$ = …`；`soft`：把含虚频的那一支（用 `softMode` 数据：声学支乘以一个让 q 小处为负的因子）的负频率部分涂红，并在旁边写“虚频”。\n- 高对称点：Γ、X，用 `htmlLabel` 写 `$\\Gamma$`，竖线 `.ax-grid`。纵轴 `$\\omega$ (THz)`；0 处画一条参考线。\n页面工厂 `phononSlide({ name, data, steps, note, notes })`；示范页放 `src/talks/gallery/slides/phononDemo.ts`，**加在 gallery 的末尾（第 15 页）**，步骤：1 画出两支；2 着色声学/光学；3 标出带隙；4 换一组“软模”数据显示虚频（`soft` 步骤需要换数据：用第二个示范页 16，或在 state 里加 `data: 0|1` 切换两组数据——选更简单的：做两页）。小注：`note: '示意数据：一维双原子链'`。\n改哪些文件：src/packs/plot/phononMath.ts、phononMath.test.ts、phononChart.ts（新）；src/talks/gallery/slides/phononDemo.ts（新）、src/talks/gallery/talk.ts（末尾加）；AGENTS.md 图表表格加一行；README 可选。\n验收：见 verification。\n常见坑：`freqs` 的 k 方向要与 `k` 数组等长；负频率不要取绝对值；公式标签里的反斜杠在 TS 里用 `String.raw`；不要用随机数。\n收尾照 docs/guides/05-definition-of-done.md：先 `feature start`，做完跑全部检查并**亲眼看截图**，提交（不要推送），再 verify → evidence manual → review record → feature complete。",
+      "evidence": []
+    },
+    {
+      "id": "M3-EMBED-001",
+      "milestone": "M3",
+      "area": "llm",
+      "title": "嵌入空间散点",
+      "behavior": "新增“嵌入空间”页面：一组词/句向量（高维，示意数据）先用 PCA 投影到 2D，按语义簇逐步出现；选定一个查询点后，高亮它的 k 个最近邻（用高维向量的余弦相似度现算，不是投影后的距离），其余压暗。实现为对已有 `scatterSlide` 的薄封装 + 纯逻辑 `embeddingMath.ts`。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "automated",
+          "command": "npx vitest run src/packs/llm/embeddingMath.test.ts",
+          "expected": "新增单测通过（余弦、最近邻、PCA 的手算断言）"
+        },
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk gallery-llm --slide 9",
+          "expected": "新页 9 逐步检查全部 0.00%"
+        },
+        {
+          "type": "manual",
+          "command": "看 check/gallery-llm/live-9-*.png",
+          "expected": "簇可区分；最近邻高亮清晰；点的标签不重叠；有“示意数据”小注"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#FR-6",
+        "docs/product/requirements.md#FR-9"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【任务书】先读：docs/guides/01-start-here.md、AGENTS.md、本 feature 的 behavior 与 verification。 再读 docs/guides/02-add-chart-component.md。\n参考实现：`src/packs/plot/scatterChart.ts`（`scatterSlide`、`ScatterPoint {x,y,group,label}`、`ScatterGroup`、state `groupsShown/highlight/region/labels`）；`src/talks/gallery/slides/sigmaKappa.ts`（用法与固定种子的伪随机数据）。**不新写绘图，复用 scatterSlide。**\n纯逻辑 `src/packs/llm/embeddingMath.ts`（必须单测，手算断言）：\n- `dot(a,b)`、`norm(a)`、`cosine(a,b)`：平行 → 1，正交 → 0，反向 → -1；零向量返回 0（不要 NaN）。\n- `nearest(vectors, queryIndex, k)`：返回按余弦相似度降序的下标数组（不含自己；并列取下标小者）。\n- `pca2d(vectors)`：把 n×d 数据中心化后，用**幂迭代**求前两个主成分（初始向量固定，如全 1 归一化再加索引扰动，**不要随机数**），返回 `[x, y][]`。测试：三维点都落在直线 (t, 2t, 0) 上 → 第一主成分方向 ∝ (1,2,0)/√5，第二主成分方差接近 0；输出的 x 坐标之差与真实投影一致（允许符号取反，所以用 `Math.abs` 比较）。\n示范 `src/talks/gallery-llm/slides/embeddingDemo.ts`：\n- 手写 12 个 6 维向量（3 个语义簇，每簇 4 个，簇内相近、簇间较远；例如“材料”簇：晶体、合金、陶瓷、薄膜；“性质”簇：热导率、带隙、电导率、塞贝克；“方法”簇：密度泛函、分子动力学、机器学习、实验），向量用确定的小数写死（不要 random）。\n- 用 `pca2d` 得到坐标，生成 `ScatterPoint[]`（`group` = 簇号，`label` = 词）；`groups` = 三个簇名。\n- steps：逐簇出现（`groupsShown: 1/2/3`）→ `labels: true` → 选“热导率”为查询点，`highlight = [查询, ...nearest(vectors, 查询, 3)]`，旁白说明“最近邻由余弦相似度计算”。\n- `note: '示意向量，PCA 投影'`。**加在 gallery-llm 末尾（第 9 页，在训练管线第 8 页之后；如果第 8 页还没做，就先占第 8 页并在 progress.md 注明页号）**。\n改哪些文件：src/packs/llm/embeddingMath.ts + .test.ts（新）、src/talks/gallery-llm/slides/embeddingDemo.ts（新）、src/talks/gallery-llm/talk.ts、AGENTS.md。\n验收：见 verification。\n常见坑：投影后的二维距离不等于高维相似度，最近邻必须用高维向量算；`scatterChart` 的 `x`/`y` 轴 domain 要覆盖 PCA 输出范围（先算范围再留 10% 边距）；不要用 Math.random。\n收尾照 docs/guides/05-definition-of-done.md：先 `feature start`，做完跑全部检查并**亲眼看截图**，提交（不要推送），再 verify → evidence manual → review record → feature complete。",
+      "evidence": []
+    },
+    {
+      "id": "M3-RAG-001",
+      "milestone": "M3",
+      "area": "llm",
+      "title": "RAG 流程图",
+      "behavior": "在架构块图上增加“侧行”能力，并做一页 RAG 流程：问题 → 向量检索 → 取回片段 → 拼入提示 → 生成 → 回答，同时有一个“知识库”块在检索块正下方，用箭头连到检索。逐步出现并高亮。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "automated",
+          "command": "npx vitest run src/packs/llm/blockLayout.test.ts",
+          "expected": "新增的“侧行”布局单测通过，原有测试仍通过"
+        },
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk gallery-llm --slide 5",
+          "expected": "原有 Decoder-only 页不回归，0.00%"
+        },
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk gallery-llm --slide 6",
+          "expected": "原有单块页不回归，0.00%"
+        },
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk gallery-llm --slide 10",
+          "expected": "新页 10 逐步检查全部 0.00%"
+        },
+        {
+          "type": "manual",
+          "command": "看 check/gallery-llm/live-10-*.png",
+          "expected": "知识库块在检索块正下方，箭头指向清楚，不与主链箭头重叠"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#FR-6"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【任务书】先读：docs/guides/01-start-here.md、AGENTS.md、本 feature 的 behavior 与 verification。 再读 docs/guides/02-add-chart-component.md。\n参考实现：`src/packs/llm/blockLayout.ts`（纯逻辑，`layoutBlocks`、`arrowPath`、`residualPath`、`groupBounds`）与 `blockDiagram.ts`。\n设计（向后兼容，**不要改变已有页面的画面**）：\n- `Block` 增加可选字段 `below?: string`：表示这个块放在 id 为该值的块的**正下方**（侧行，不参与主链的左右排布）。没有 `below` 的块行为不变。\n- `blockSlide` 增加可选参数 `links?: { from: string; to: string }[]`：额外的箭头（用于侧行块到主链块），箭头路径用现有的 `arrowPath` 思路（竖直的从下往上）。\n- 步骤：\n  1. 在 `blockLayout.ts` 的 `layoutBlocks` 里：先只对**没有 below** 的块做现有的排布；再把有 below 的块放在其目标块正下方（x 与目标块居中对齐，y = 目标块的 y + 目标块高度 + `gap`）；返回的 rect 仍然在画布内（必要时在主链布局时给下方预留空间：当存在侧行块时，把主链整体上移半个 `gap + 块高`）。\n  2. 单测（`blockLayout.test.ts` 追加）：构造 3 个主链块 + 1 个 `below` 块，断言：侧行块的中心 x 等于目标块中心 x；侧行块的 y 大于目标块的 y；所有 rect 在画布内；**不含 below 的原有用例全部不变且仍通过**。\n  3. `blockDiagram.ts`：渲染侧行块（同样式）和 `links` 箭头；state 里 `shown/active` 的含义按块在数组中的顺序不变（侧行块也按顺序出现）。\n  4. 示范 `src/talks/gallery-llm/slides/ragDemo.ts`：blocks 顺序 = 问题、向量检索、知识库（`below: '向量检索' 的 id`）、取回片段、拼入提示、生成、回答；`links: [{from:'kb', to:'retrieve'}]`；`shape` 写各阶段的张量/数据（如 `$q$`、`$k$ 个片段`），steps 逐块出现，旁白一句话说明每块。`note: '结构示意'`。**加在 gallery-llm 末尾（第 10 页；如果 8、9 页还没做，页号顺延并在 progress.md 注明）**。\n改哪些文件：src/packs/llm/blockLayout.ts + .test.ts、blockDiagram.ts、src/talks/gallery-llm/slides/ragDemo.ts（新）、talk.ts、AGENTS.md。\n验收：见 verification；**必须同时检查第 5、6 页没有回归**。\n常见坑：改布局最容易破坏已有页面的画面——改完先跑 `--slide 5` 和 `--slide 6`；单块页是 `direction: 'column'`，侧行只在 row 方向做（column 时忽略 `below` 并保持原行为）。\n收尾照 docs/guides/05-definition-of-done.md：先 `feature start`，做完跑全部检查并**亲眼看截图**，提交（不要推送），再 verify → evidence manual → review record → feature complete。",
+      "evidence": []
+    },
+    {
+      "id": "M3-THREAD-001",
+      "milestone": "M3",
+      "area": "llm",
+      "title": "用真实线程验证 Agent 适配器",
+      "behavior": "拿一份从 harness 导出的**真实**线程 JSON（先脱敏），经 `fromMessages` 转成 trace 并完整回放；把适配器里与真实数据不符的规则修正，并把一份**精简、脱敏**的真实片段做成回归测试夹具。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "automated",
+          "command": "npx vitest run src/packs/llm/agentTrace.test.ts",
+          "expected": "包含真实线程夹具的回归测试通过"
+        },
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk gallery-llm --slide 7",
+          "expected": "原有 Agent 页不回归，0.00%"
+        },
+        {
+          "type": "manual",
+          "command": "用真实线程在浏览器里回放（放进你自己的演讲 talks/<名>/）",
+          "expected": "每个事件的旁白合理；失败、超时、重试被正确识别；并行子任务合成一步"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#FR-7"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【任务书】先读：docs/guides/01-start-here.md、AGENTS.md、本 feature 的 behavior 与 verification。 再读 docs/guides/04-add-a-talk.md 的“Agent 回放”一节。\n**需要使用者提供一份导出的线程 JSON（没有时把本 feature 标记为 blocked，原因写“等待使用者提供真实线程 JSON”）。**\n怎么导出（让使用者做）：harness 网关的线程状态接口会返回 `values.messages`（LangChain 消息数组）；也可在 UI 里导出。拿到的 JSON 里取 `messages` 数组即可。\n步骤：\n1. **脱敏**：把 JSON 里的密钥、token、内部主机名/路径、个人信息替换为占位符（如 `<REDACTED>`）；`reasoning_content` 可以整段删掉。脱敏后让使用者确认。\n2. 放进夹具：`src/packs/llm/fixtures/realThread.json`（精简到 8~20 条消息，保留至少一次并行 `task` 委派、一个失败或超时的子任务；**不要放完整长日志**）。\n3. 在 `agentTrace.test.ts` 追加用例：`fromMessages(realThread)` 的 actors 数量、事件序列的类型顺序（`ask → delegate → result… → answer`）、失败/超时/重试被识别的位置，**这些期望值先手工读 JSON 推出来，再写断言**，不要先跑代码再抄输出。\n4. 若断言与实际不符：判断是适配器规则不对还是你的推断不对；适配器规则的判定写在 `agentTrace.ts` 文件头，改规则要同步改注释，并保证原有 20 项单测仍通过（或有理由地修改）。\n5. 在使用者自己的演讲目录里用 `agentSlide` 回放，检查旁白与画面。\n改哪些文件：src/packs/llm/fixtures/realThread.json（新）、agentTrace.test.ts、必要时 agentTrace.ts；docs/adr/0006 的“待办”那条可更新为已完成（新写一条 ADR 或在 progress.md 记录，不要改已接受 ADR 的 Decision）。\n验收：见 verification。\n常见坑：真实线程里的 tool 消息 `content` 可能很长或是 block 数组，`extractText` 已截断，但要核对中文不被截坏；`tool_call_id` 缺失时按名字配对的规则可能误配，真实数据里要看；**不要把未脱敏的数据提交到 git**（一旦提交很难彻底删除）。\n收尾照 docs/guides/05-definition-of-done.md：先 `feature start`，做完跑全部检查并**亲眼看截图**，提交（不要推送），再 verify → evidence manual → review record → feature complete。",
+      "evidence": []
+    },
+    {
+      "id": "M3-TRAIN-001",
+      "milestone": "M3",
+      "area": "llm",
+      "title": "训练管线时间线",
+      "behavior": "新增“训练管线”页面：预训练 → 指令微调 → 偏好对齐（RLHF/DPO），三个阶段逐步点亮；每个阶段块下方显示数据规模（如 $10^{12}$ 词元，示意值），旁白点明该阶段目标。实现为对已有 `blockSlide`（架构块图）的薄封装，不重写布局。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "automated",
+          "command": "npx vitest run src/packs/llm/trainingPipeline.test.ts",
+          "expected": "新增单测通过"
+        },
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk gallery-llm --slide 8",
+          "expected": "新页 8 逐步检查全部 0.00%"
+        },
+        {
+          "type": "manual",
+          "command": "看 check/gallery-llm/live-8-*.png",
+          "expected": "三个阶段块、箭头、数据规模文字清晰；高亮块为 accent；有“示意数据”小注"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#FR-6",
+        "docs/product/requirements.md#FR-9"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【任务书】先读：docs/guides/01-start-here.md、AGENTS.md、本 feature 的 behavior 与 verification。 再读 docs/guides/02-add-chart-component.md。\n参考实现：`src/packs/llm/blockDiagram.ts`（`blockSlide`、`Block` 类型：`id/label/kind/shape/group`）和 `src/talks/gallery-llm/slides/decoderOnly.ts`（怎么写 steps）。**不要新写布局**，把训练阶段映射成 `Block[]`：`label` = 阶段名，`shape` = 数据规模字符串（支持 `$…$`），`kind` 用 `'io'` 或 `'attn'`（只影响描边样式，任选）。\n步骤：\n1. 新建 `src/packs/llm/trainingPipeline.ts`，导出：\n   - `interface TrainingStage { label: string; data: string /* 如 String.raw`$10^{12}$ 词元` */; goal: string /* 一句话目标，用作旁白 */ }`\n   - 纯函数 `stagesToBlocks(stages): Block[]` 与 `stagesToSteps(stages): ChartStep<BlockState>[]`（第 i 步：`shown: i+1, active: i`，caption = `stages[i].goal`；最后再加一步 `active: null` 概览，caption 如“三个阶段依次进行”）。\n   - `trainingSlide({ name, stages, note, notes })`：内部调用 `blockSlide({ name, blocks: stagesToBlocks(stages), direction: 'row', steps: stagesToSteps(stages), note, notes })`。\n2. 单测 `trainingPipeline.test.ts`：3 个阶段 → `stagesToBlocks` 长度 3、id 唯一、顺序保持、`shape` 等于传入的 data；`stagesToSteps` 长度 4（3 个阶段 + 1 个概览），第 2 步 `state` 为 `{ shown: 2, active: 1 }`，最后一步 `active === null`。（`BlockState` 的字段名以 blockDiagram.ts 为准，先读文件。）\n3. 示范 `src/talks/gallery-llm/slides/trainingDemo.ts`，数据：预训练（`$10^{12}$ 词元`，“学会预测下一个词”）、指令微调（`$10^{5}$ 条指令`，“学会听懂并执行指令”）、偏好对齐（`$10^{5}$ 组偏好`，“让回答更符合人类偏好”）；`note: '示意数据'`。**加在 gallery-llm 的末尾（第 8 页）**。\n改哪些文件：src/packs/llm/trainingPipeline.ts + .test.ts（新）、src/talks/gallery-llm/slides/trainingDemo.ts（新）、src/talks/gallery-llm/talk.ts（末尾加）、AGENTS.md 的大模型表格加一行。\n验收：见 verification。\n常见坑：数据规模只是量级示意，必须有小注；`$…$` 里的反斜杠用 `String.raw`；不要改 `blockDiagram.ts`。\n收尾照 docs/guides/05-definition-of-done.md：先 `feature start`，做完跑全部检查并**亲眼看截图**，提交（不要推送），再 verify → evidence manual → review record → feature complete。",
+      "evidence": []
+    },
+    {
+      "id": "M0-RUNTIME-001",
+      "milestone": "M0",
+      "area": "runtime",
+      "title": "基线：运行时与幻灯片契约",
+      "behavior": "点击/键盘步进、回退、URL 哈希直达、演讲者备注（S）、总览（O）、全屏（F）；`enter(step, animate)` 契约保证“跳转 == 点过来”；一个演讲一个目录，`?talk=` 加载，只挂载当前页。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "automated",
+          "command": "npm run verify",
+          "expected": "类型检查、全部单测、构建通过"
+        },
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk example",
+          "expected": "示例演讲 17 步全部 0.00%，无控制台错误"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#FR-1",
+        "docs/product/requirements.md#FR-2",
+        "docs/product/requirements.md#FR-10",
+        "docs/product/requirements.md#FR-11",
+        "docs/product/requirements.md#NFR-3"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【基线】这是 2026-10-25 之前已完成的工作，用真实命令补证据。设计依据：docs/adr/0002、0005。",
+      "evidence": []
+    },
+    {
+      "id": "M0-FORMULA-001",
+      "milestone": "M0",
+      "area": "runtime",
+      "title": "基线：公式逐项变形",
+      "behavior": "manim-web 舞台支持 `morphTex`：相同的 LaTeX 部分移动到新位置，不同部分淡入淡出，结束后只剩目标公式；上色放在 `prepare` 钩子。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk example --slide 2",
+          "expected": "公式变形页逐步 0.00%，无控制台错误"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#FR-3"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【基线】已完成。设计依据：docs/adr/0001。",
+      "evidence": []
+    },
+    {
+      "id": "M0-CRYSTAL-001",
+      "milestone": "M0",
+      "area": "materials",
+      "title": "基线：3D 晶体与晶体图 GNN",
+      "behavior": "CIF → 数据 → 可拖动的 3D 球棍模型：晶胞、配位多面体、元素标签与图例、晶格矢量、高亮、按层聚焦、超胞、晶体 → 图 → GNN 消息传递。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "automated",
+          "command": "npx vitest run src/packs/materials",
+          "expected": "晶体结构与图的单测全部通过"
+        },
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk gallery --slide 11",
+          "expected": "Bi₂Te₃ 页逐步 0.00%"
+        },
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk gallery --slide 13",
+          "expected": "GNN 页逐步 0.00%"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#FR-4",
+        "docs/product/requirements.md#FR-8"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【基线】已完成。",
+      "evidence": []
+    },
+    {
+      "id": "M0-CHARTS-001",
+      "milestone": "M0",
+      "area": "plot",
+      "title": "基线：热电/材料图表套件",
+      "behavior": "折线（含对数轴、峰值、直接标注）、能带 + 态密度、散点、形成能凸包、筛选漏斗、XRD 谱、柱状图；示例数据都带“示意数据”小注。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "automated",
+          "command": "npx vitest run src/packs/plot",
+          "expected": "图表纯逻辑单测全部通过"
+        },
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk gallery --slide 1",
+          "expected": "折线页逐步 0.00%"
+        },
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk gallery --slide 7",
+          "expected": "凸包页逐步 0.00%"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#FR-5",
+        "docs/product/requirements.md#FR-9"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【基线】已完成。",
+      "evidence": []
+    },
+    {
+      "id": "M0-LLM-001",
+      "milestone": "M0",
+      "area": "llm",
+      "title": "基线：大模型组件与 Agent 回放",
+      "behavior": "词元条、注意力热图（真实缩放点积）、自回归与温度采样、架构块图、Agent 编排回放（LangChain 消息适配器，通用 trace）。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "automated",
+          "command": "npx vitest run src/packs/llm",
+          "expected": "大模型纯逻辑单测全部通过"
+        },
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk gallery-llm --slide 2",
+          "expected": "注意力热图页逐步 0.00%"
+        },
+        {
+          "type": "automated",
+          "command": "npm run check -- --talk gallery-llm --slide 7",
+          "expected": "Agent 回放页逐步 0.00%"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#FR-6",
+        "docs/product/requirements.md#FR-7"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【基线】已完成。设计依据：docs/adr/0006。",
+      "evidence": []
+    },
+    {
+      "id": "M0-DESIGN-001",
+      "milestone": "M0",
+      "area": "design",
+      "title": "基线：设计语言与数据诚实",
+      "behavior": "白底、低饱和配色（只来自 palette）、底部一句旁白、文字不小于约 28 单位；示例数据一律带“示意数据”小注；纯逻辑有手算断言的单测；演讲不依赖 CDN。",
+      "status": "not_started",
+      "dependencies": [],
+      "verification": [
+        {
+          "type": "automated",
+          "command": "npm run verify",
+          "expected": "类型检查、全部单测、构建通过"
+        },
+        {
+          "type": "manual",
+          "command": "打开 README 里的示例截图与 gallery 的几页",
+          "expected": "白底、少小字、旁白一句、示例页都有“示意数据”小注"
+        }
+      ],
+      "source_refs": [
+        "docs/product/requirements.md#NFR-1",
+        "docs/product/requirements.md#NFR-2",
+        "docs/product/requirements.md#NFR-4",
+        "docs/product/requirements.md#NFR-5"
+      ],
+      "implementation": {
+        "files": [],
+        "commits": []
+      },
+      "blocker": null,
+      "notes": "【基线】已完成。设计依据：docs/adr/0003、0004。",
+      "evidence": []
+    }
+  ]
+}

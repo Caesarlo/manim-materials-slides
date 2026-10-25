@@ -125,7 +125,7 @@ deck.slide(crystalSlide({
 }))
 ```
 
-开发约定、幻灯片契约、已知的坑见 [AGENTS.md](AGENTS.md)。
+开发约定、幻灯片契约、已知的坑见 [AGENTS.md](AGENTS.md)；**新增图表 / 晶体效果 / 演讲的逐步手册见 [docs/guides/](docs/guides/README.md)**；需求在 [docs/product/requirements.md](docs/product/requirements.md)，设计决策在 [docs/adr/](docs/adr/README.md)，待办与任务书在 `feature_list.json`（项目用 [sdlc-harness](AGENTS.sdlc-harness.md) 管理，见 ADR 0007）。
 
 ## 路线
 

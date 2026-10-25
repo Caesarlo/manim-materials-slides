@@ -1,0 +1,37 @@
+name: ci
+
+# CI (pull-request validation): fast feedback on every change, before it can reach main.
+# Keep this fast — lint/build/test only, no deployment artifacts. See docs/workflow/
+# 08-deployment.md for the separate trunk-deployment pipeline (deploy.yml), which is the
+# only workflow allowed to touch production and only runs after this one has passed on
+# main.
+
+# 本项目是单人直接提交到 main 的工作流，所以 main 上的推送也要跑（harness 默认只管 PR 和非 main 分支）。
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Full history (not the default shallow clone) so `validate`'s
+          # passing_is_monotonic check can diff feature_list.json against
+          # the PR base ref — a shallow checkout would have no base ref to
+          # compare against, silently defeating that check.
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - run: npx @caesarlo/sdlc-harness validate
+      - run: npm ci
+      # 类型检查 + 全部单元测试 + 生产构建（npm run verify）。
+      # 无头浏览器检查（npm run check，逐页逐步对比“点过来 vs 直接跳”）依赖本机 Chrome 和软件渲染，
+      # 耗时较长，目前在本地合并前运行，不放进 CI（见 docs/adr/0004）。
+      - name: Project verification
+        run: npm run verify

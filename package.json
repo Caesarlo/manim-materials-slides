@@ -9,7 +9,8 @@
     "preview": "vite preview --port 4173",
     "test": "vitest run",
     "check": "node tools/check-deck.mjs",
-    "shots": "node tools/screenshots.mjs"
+    "shots": "node tools/screenshots.mjs",
+    "verify": "tsc --noEmit && vitest run && vite build"
   },
   "dependencies": {
     "katex": "^0.19.1",
