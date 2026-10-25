@@ -1,7 +1,7 @@
 {
   "project": "manim-materials-slides",
   "schema_version": "1.0",
-  "last_updated": "2026-10-25T09:55:57.194Z",
+  "last_updated": "2026-10-25T10:38:31.065Z",
   "evidence": [],
   "rules": {
     "wip_limit_per_owner": 1,
@@ -111,7 +111,7 @@
       "area": "repo",
       "title": "选定并添加许可证",
       "behavior": "仓库根目录有 LICENSE 文件，内容是使用者选定的许可证全文（版权行写使用者的名字和年份）；README 末尾有“许可证”一节写明类型；package.json 的 \"license\" 字段与之一致。",
-      "status": "in_progress",
+      "status": "passing",
       "dependencies": [],
       "verification": [
         {
@@ -142,15 +142,55 @@
           "recorded_at": "2026-10-25T10:36:51.876Z",
           "exit_code": 0,
           "commit_sha": "d585b54d433c4b1c9a5b26c04b969d14f87d94e1"
+        },
+        {
+          "kind": "manual",
+          "verification_index": 2,
+          "command": "向使用者确认所选许可证",
+          "expected": "使用者在对话里明确同意该许可证类型",
+          "result": "passed",
+          "notes": "使用者在对话中明确选择 MIT 许可证，并指定版权人为 Caesarlo（2026-10-25）。",
+          "actor": "claude-main",
+          "recorded_at": "2026-10-25T10:37:14.112Z",
+          "commit_sha": "a6791f032b6cdad1c8008c014af6e23c5956f37a"
+        },
+        {
+          "kind": "review",
+          "result": "passed",
+          "reviewer": "claude-main",
+          "summary": "核对：LICENSE 为标准 MIT 全文，年份 2026、版权人 Caesarlo；package.json license=MIT；README 有许可证一节；依赖（manim-web、three.js、katex、vite）均为 MIT，兼容；npm run verify 通过。",
+          "recorded_at": "2026-10-25T10:37:20.267Z",
+          "commit_sha": "a6791f032b6cdad1c8008c014af6e23c5956f37a"
+        },
+        {
+          "kind": "test",
+          "command": "node -e \"require('fs').accessSync('LICENSE')\"",
+          "result": "passed",
+          "recorded_at": "2026-10-25T10:38:06.590Z",
+          "exit_code": 0,
+          "commit_sha": "a6791f032b6cdad1c8008c014af6e23c5956f37a"
+        },
+        {
+          "kind": "manual",
+          "verification_index": 2,
+          "command": "向使用者确认所选许可证",
+          "expected": "使用者在对话里明确同意该许可证类型",
+          "result": "passed",
+          "notes": "使用者在对话中明确选择 MIT 许可证，并指定版权人为 Caesarlo（2026-10-25）。",
+          "actor": "claude-main",
+          "recorded_at": "2026-10-25T10:38:14.014Z",
+          "commit_sha": "a6791f032b6cdad1c8008c014af6e23c5956f37a"
+        },
+        {
+          "kind": "review",
+          "result": "passed",
+          "reviewer": "claude-main",
+          "summary": "核对：LICENSE 为标准 MIT 全文，年份 2026、版权人 Caesarlo；package.json license=MIT；README 有许可证一节；依赖均为 MIT，兼容；npm run verify 通过。",
+          "recorded_at": "2026-10-25T10:38:23.148Z",
+          "commit_sha": "a6791f032b6cdad1c8008c014af6e23c5956f37a"
         }
       ],
-      "claim": {
-        "id": "e92bb473-8a09-4720-82af-5dc8fba9aa9a",
-        "owner": "agent",
-        "actor_id": "claude-main",
-        "claimed_at": "2026-10-25T10:36:08.494Z",
-        "lease_until": "2026-10-25T12:36:08.494Z"
-      },
+      "claim": null,
       "owner": "agent"
     },
     {

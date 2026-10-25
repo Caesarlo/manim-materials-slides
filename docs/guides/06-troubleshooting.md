@@ -46,5 +46,6 @@
 |---|---|
 | `validate` 报 `agents-onboarding` | `AGENTS.md` 开头要有指向 `AGENTS.sdlc-harness.md` 的链接（已有，别删） |
 | `validate` 报 `traceability` | 每条 FR/NFR 要被某个 feature 覆盖；feature 的 `source_refs` 要写成 `docs/product/requirements.md#FR-5` 这种带**大写编号**的锚点 |
-| `feature complete` 失败 | 缺 `verify` 证据或缺 `review record`；按 05-C 的顺序补齐 |
+| `feature complete` 失败，提示 `missing passing evidence for current commit` | 证据绑定提交：你在 verify 之后又提交了。在**当前提交**上重新跑 `verify`、`evidence manual`、`review record` 再 `feature complete` |
+| `feature complete` 失败（其他） | 缺 `verify` 证据或缺 `review record`；按 05-C 的顺序补齐 |
 | 想改 feature 状态 | 不要手改 JSON；用 `feature start/block/reopen/complete` |

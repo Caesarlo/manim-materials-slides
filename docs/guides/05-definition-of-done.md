@@ -26,11 +26,13 @@ git commit                  # 提交信息：一句话概括 + 空行 + 要点�
 
 ## C. 用 sdlc-harness 记录证据并完成 feature
 
+> **顺序很重要：证据绑定的是“当前提交”。先完成 B（提交），再做下面的 verify → evidence manual → review record → feature complete。** 如果先 verify 后又提交了新内容，`feature complete` 会报 `missing passing evidence for current commit`，这时在当前提交上把 verify / evidence manual / review record 再各跑一遍即可。
+
 `<ID>` 是 `feature_list.json` 里的 feature id，例如 `M2-PHONON-001`。
 
 ```bash
 npx @caesarlo/sdlc-harness feature start <ID>          # 开始做之前执行一次（不要手改 status）
-# ……做完 A、B 之后：
+# ……做完 A、B（已提交）之后：
 npx @caesarlo/sdlc-harness verify <ID>                 # 自动运行该 feature 声明的 automated 验证命令并记录证据
 npx @caesarlo/sdlc-harness evidence manual <ID> --verification <第几条，从1数> --result passed --notes "怎么验证的、看到了什么"   # 每条 manual 验证各记一次
 npx @caesarlo/sdlc-harness review record <ID> --reviewer <你的名字> --summary "审查了什么、结论" --result passed
