@@ -1,175 +1,295 @@
-# AGENTS.md — 在这个仓库里工作的约定
+# AGENTS.md — working in this repo
 
-> **SDLC harness**：本仓库用 `sdlc-harness` 管理功能状态（`feature_list.json`）、会话记录（`progress.md`）和决策（`docs/adr/`）。
-> 开始工作前先读 [AGENTS.sdlc-harness.md](AGENTS.sdlc-harness.md)，并运行 `npx @caesarlo/sdlc-harness validate` 和 `status`。
-> 本项目的具体做法（轻量化配置、验证命令、CI 范围）见 [docs/adr/0007-sdlc-harness-light.md](docs/adr/0007-sdlc-harness-light.md)。
+Instructions for coding agents (Claude Code, Codex, and others) and for people. `CLAUDE.md` points here; keep
+one copy of the rules, in this file.
 
-给编码助手和人看的同一份规则。
+## What this is
 
-> **执行具体任务时先读 [docs/guides/](docs/guides/README.md)**（开工必读、新增图表/晶体效果/演讲的逐步手册、收尾清单、排错）。待办与任务书在 `feature_list.json`（`npx @caesarlo/sdlc-harness status` 查看下一步）。
+A template for **live slide decks for materials-science talks**: every slide is a small JavaScript module that
+draws itself in the browser while you present — HTML and SVG for text and diagrams,
+[manim-web](https://github.com/maloyan/manim-web) (a TypeScript port of manim) for anything that animates, and
+3D add-ons: a **crystal-structure view** (atoms, bonds, coordination polyhedra, layers, lattice vectors; bonds by
+pymatgen's rule) and a turntable stage for molecules. Reveal.js supplies only navigation, click-steps and speaker
+notes. No build step, no rendered video: edit a file, refresh the browser. Decks work offline and straight from
+disk (`file://`).
 
-## 这是什么
+The repo started as a fork of [ramithuh/protein-design-interactive-slides](https://github.com/ramithuh/protein-design-interactive-slides)
+(MIT). `talks/example/` is that project's demo, kept unchanged as the reference for every feature: its molecule and
+protein slides are biology-flavoured, and are there to show the turntable stage, not as content for our talks.
+`talks/materials-demo/` is the materials one — start from it. **To build a talk, read [docs/handbook/README.md](docs/handbook/README.md) first**: it says which component fits which need and how to lay slides out; this file keeps the rules.
 
-一套**现场绘制**的演示模板，面向“大模型 × 材料”：每一页是一个小模块，在浏览器里自己画自己。
-点一下走一步，可回退，白底、3b1b 式版面。动画引擎是 [manim-web](https://github.com/maloyan/manim-web)（MIT），
-3D 晶体用 three.js，其余用 HTML/SVG。运行时是自己写的（设计参考了 ramithuh/protein-design-interactive-slides，
-但该仓库没有 LICENSE，**没有复制它的任何代码**，只借鉴架构思路）。
+## Layout
 
-## 目录
+| Path | What it is |
+| --- | --- |
+| `web/deck.js` | The runtime: slide registry, steps, section footer, themes, laser pointer, click navigation, WebGL budget. Also `Deck.show` and `Deck.points`. |
+| `web/deck.css` | **The design language**: type scale, colours, layout grid, footer, step reveals, points column, chart layout. |
+| `web/manim.js` | `Deck.manim`: a manim-web scene that plays one step per click. |
+| `web/plots.js` | `Deck.groupedBars`: the one bar-chart layout. |
+| `web/echarts.js` | `Deck.echart`: thin lifecycle/theme bridge to locally vendored Apache ECharts. Standard charts use native ECharts options; demo in `talks/plot-gallery/slides/echarts.js`. |
+| `web/line_chart.js`, `funnel_chart.js`, `hull_chart.js`, `phonon_chart.js`, `spectra.js` | Optional data-driven line/scatter, funnel, binary hull, phonon, band/DOS and XRD components. Load after `deck.js` and `manim.js`; hull and phonon also load `line_chart.js` first. |
+| `web/llm_math.js`, `llm.js`, `llm_flow.js` | Optional educational LLM calculations and slides: tokens, attention, sampling, diagrams, agent traces and embeddings. Load in that order after `deck.js`. |
+| `web/addons/crystal_legend.js` | Optional element legend for a hand-built crystal view, loaded after `crystal.js`. |
+| `web/addons/crystal.js`, `crystal_logic.js`, `bond_rules.js` | **The crystal add-on** (see below): `Deck.CrystalView`, `Deck.crystalSlide`, `Deck.crystalLogic`. `bond_rules.js` is generated (pymatgen's bonding rule); load it, then `crystal_logic.js`, then `crystal.js`. |
+| `web/addons/` (others) | The molecule add-on: `molstar.js` (a Mol*-like look), `cartoon.js` (protein cartoons), `turntable.js` (drag/zoom/rock stage with camera moves), `atoms.js` (ball-and-stick, target cages). Only talks that show molecules load these. |
+| `talks/<name>/` | One talk: `index.html` (the slide order), `slides/*.js`, `data/*.js`. `talks/materials-demo/` shows the crystal view; `talks/example/` shows every other feature. |
+| `tools/` | `check_deck.py` (headless check of a deck), `export_pdf.py` (a PDF of pictures, per slide or per click), `build_site.sh` (the published site), `deploy_pages.sh` (manual upload to Cloudflare Pages), `prep_crystal.py` (CIF → unit-cell data for the crystal view), `prep_csv.py` (CSV → offline line-chart data), `export_bond_rules.py` (pymatgen's bonding rule → `web/addons/bond_rules.js`), `prep_protein.py` (structure → cartoon data), `prep_amino_acids.py` (the alphabet slides' RDKit drawings and 3D stretch), `vendor_manim_web.sh`, `gen_components.py` (writes `docs/components.md` from the `web/` header comments), `check_docs.py` (the docs checks: headers, AGENTS.md mentions, the generated index, slide headers). |
+| `docs/handbook/` | **The component handbook — read `docs/handbook/README.md` before building a talk**: which component for which need, how to lay slides out, copy-pasteable recipes, tools, the verification checklist. Includes the optional migrated components. `python tools/check_docs.py` checks that it only names components that exist. |
+| `docs/components.md` | Generated API index of every `web/` component, from its header comment; regenerate with `python tools/gen_components.py`. |
+| `vendor/` | manim-web, Reveal.js, the Lato font — each with its licence. Never load anything from a CDN. |
 
-| 路径 | 作用 |
-|---|---|
-| `src/runtime/deck.ts` | 运行时：注册幻灯片、点击步进、回退、URL 哈希、备注(S)、总览(O)、全屏(F) |
-| `src/runtime/manimStage.ts` | manim-web 舞台：`build` + `steps`，回退/跳转时重建并瞬间应用；含 `morphTex`、`prepare` |
-| `src/runtime/reveal.ts` | HTML 元素按步骤淡入 `show()`；每步一句旁白 `captions()` |
-| `src/runtime/palette.ts` | **唯一的颜色来源**，同时写入 CSS 变量 |
-| `src/styles/deck.css` | 设计语言：以画面宽度 1% 为单位 `--u`，字号阶梯 `--t-*` |
-| `src/packs/materials/` | 材料包：`structure.ts`（晶体→原子/键/多面体）、`CrystalView.ts`（three.js）、`crystalSlide.ts`（声明式 3D 页）、`presets.ts`（成键规则） |
-| `src/packs/plot/` | 图表套件：`scale.ts`（比例尺/刻度）、`chartFrame.ts`（SVG 坐标轴底座）、`chartSlide.ts`（声明式图表页）；`lineChart`、`bandChart`、`scatterChart`、`hullChart`、`funnel`、`xrdChart`（各自的纯逻辑在 `*Math.ts`，有单测） |
-| `src/packs/llm/` | 大模型包：`tokenize` / `tokenStrip`（词元条）、`attentionMath` / `attentionMap`（注意力热图，权重由真实缩放点积计算）、`sampling` / `nextToken`（自回归与温度采样）、`blockLayout` / `blockDiagram`（架构块图）、`agentTrace` / `agentFlow`（Agent 编排回放，含 LangChain 消息适配器）；纯逻辑都有单测 |
-| `src/main.ts` | 入口：按 `?talk=名称` 加载 `src/talks/<名称>/talk.ts`，默认 `example` |
-| `src/talks/<名称>/` | 一场演讲：`talk.ts`（`register(deck)` 里按顺序注册页面）、`slides/*.ts`、`data/*.ts`（由脚本生成）。新建演讲 = 复制 `talks/example/` 改名，无需登记 |
-| `tools/cif_to_ts.py` | CIF → 晶体数据（`uv run`，自动装 gemmi，按空间群展开对称操作） |
-| `tools/csv_to_ts.py` | CSV → 折线图数据（`uv run`，无依赖；空值→`null`，`#` 注释保留；用法见 `tools/README.md`） |
-| `src/talks/gallery/`、`gallery-llm/` | **组件画廊**：`gallery` = 图表 + 晶体（含 GNN），`gallery-llm` = 大模型组件。每个组件一页示范（数据均为示意），也是回归检查（`npm run check -- --talk gallery` / `gallery-llm`）。新增组件时在对应画廊加一页 |
+## The slide contract
 
-## 幻灯片契约
-
-```ts
-export const x: SlideDef = {
-  name: '页面名', steps: 3, notes: '备注(S)', interactive: false,
-  mount(frame, { esc, palette }) {
-    frame.innerHTML = `…`
+```js
+Deck.slide('name', {
+  steps: 3,                 // clicks on this slide (default 1); step 1 is what shows on arrival
+  notes: 'speaker notes',   // press S
+  interactive: true,        // the slide takes drags/wheel (3D); no swipe navigation on touch
+  smoothBack: true,         // it plays steps in reverse on one click back, when the deck's smoothBack is '3d'
+  before: 'other-name',     // optional: insert ahead of an already registered slide
+  mount(frame, { theme, palette, data, M, css, esc }) {
+    // build into `frame` (16:9; 1em = 1/100 of its width)
     return {
-      enter(step, animate) {},   // 显示第 1..step 步
-      destroy() {},              // 切走时一定会调用：释放 WebGL / 监听器
-    }
+      enter(step, animate) {},   // show steps 1..step. animate: true = going forward, play the step;
+                                 //   'back' = one click back, may play it in reverse (quickly); false = jump
+      leave() {},                // optional: off screen, stop loops
+      freeze() {},               // optional: redraw canvases now so the deck can picture them
+      destroy() {},              // optional: free WebGL/listeners (slides > 2 away are unmounted)
+    };                           // enter may return a Promise; the busy dot pulses until it settles
   },
-}
+});
 ```
 
-- **`enter` 必须幂等且可跳转**：`enter(4, false)` 紧跟在 `mount` 之后，必须和“从第 1 步逐步点到第 4 步”画面完全一致。
-  写“每一步的状态”，不要写“相对上一步的增量”。`animate=true` 才播放动画。
-- 第 1 步是进入该页时显示的画面。
-- 同一时刻只挂载当前页（WebGL 上下文有限），所以 `destroy` 必须写。
-- 新增一页：写 `SlideDef`（或用 `crystalSlide` 等工厂），在 `src/talks/<名称>/talk.ts` 的 `register()` 里 `deck.slide(...)`。
-- 新增一场演讲：复制 `src/talks/example/` 为 `src/talks/<新名字>/`，改 `talkTitle` 和页面；用 `http://localhost:4100/?talk=<新名字>` 打开，`npm run check -- --talk <新名字>` 检查。
+- **Going back** is set for the whole deck: `Deck.start({ title, smoothBack })`, `'none'` (the default: back
+  always jumps), `'3d'` (slides that declare `smoothBack: true` get one click back as `animate === 'back'`;
+  everything else jumps) or `'all'` (every slide gets 'back', so `Deck.show` and the charts also fade back). A
+  second click within 0.7 s, or arriving from a later slide, always passes `false`. A slide with its own motion
+  may play that step in reverse, faster than forward (about half). Reverse only motion that reads well backwards
+  (camera moves, a lift settling back); content that would look odd undone (a tear healing) should just jump.
+  Every 'back' must still end in exactly the state a jump gives.
+- `enter` must be **idempotent and jump-safe**: `enter(4, false)` straight after mount must give exactly the
+  picture you get by clicking through 1→4. Write state per step, not deltas.
+- Wrap a module's constants in `{ ... }` (a block) so names don't collide across files.
+- `ctx.css(text)` adds a style once; prefix a slide's classes with a short slide-specific prefix (`fp-`, `ms-`).
+- The order of slides is the order of `<script>` tags in the talk's `index.html`. `Deck.section(n)` before a
+  group of tags puts those slides in footer section n; `Deck.section(null)` for title/closing slides.
+  `Deck.hide('name')` after the tags takes a slide out without deleting it.
 
-## 设计语言（用它，别重新发明）
+## The design language — use it, don't reinvent it
 
-- 一切尺寸用 `--u`（画面宽度的 1%）。**不要在幻灯片里写 px 或临时字号**，用 `--t-display/heading/lead/caption/body/small`。
-- 版面：图占满并居中；可选居中标题 `.deck-heading`；底部一句旁白 `.deck-caption`（用 `captions([...])`，每步一句）。
-  不写段落，不写项目符号。细节放 `notes`。
-- 强调靠运动和透明度（出现、压暗其余），不用发光、渐变、毛玻璃。
-- 颜色：CSS 用 `var(--accent)` 等；脚本里用 `palette`。**不要写死十六进制**。每页最多 1 主色 + 1 辅色。颜色即对应关系（公式项、曲线、节点同色）。
-- 逐步显现：`class="reveal-in" data-from="2"`（可加 `data-until`、`style="--i:n"` 错落），在 `enter` 里调 `show(frame, step, animate)`。
+**Preserve the styles of existing components by default.** Reuse the original component's appearance and
+rendering parameters (including colours, typography, spacing, lines and arrowheads); do not alter shared styles,
+component implementations, or existing component styling in a talk merely to adapt a slide. For a new visual
+need, create a separate, talk-scoped element or variant without changing existing components. Change an existing
+component's style only when the user explicitly requests that change.
 
-## manim-web 舞台
+Everything is sized in `--u` (1/100 of the frame width), so slides scale to any screen. **Never use px or ad
+hoc font sizes for slide text**; use the tokens:
 
-```ts
-const stage = manimStage(host, {
-  build: ({ M, P }) => ({ a: new M.Circle({ color: P.accent }) }),   // 每次返回全新对象
-  prepare: (o) => {},                                                // 公式渲染完成后（getPart / 上色）
-  steps: [ ({ a }, { M }) => [new M.Create(a)], … ],                 // steps[k-1] 从 k-1 步到 k 步
-})
-// slide: return { enter: (s, a) => stage.go(s, a), destroy: stage.dispose }
+| Token | Use |
+| --- | --- |
+| `--t-display` | title slide's title (`.deck-title`) |
+| `--t-heading` | slide heading (`<h2 class="deck-heading">`, accent colour, top left) |
+| `--t-lead` | list items, key statements, outline rows |
+| `--t-body` | running text, point titles |
+| `--t-small` | secondary text, point sub-lines |
+| `--t-caption` | legends, labels, captions |
+| `--t-micro` | hints |
+
+Layout grid: margins 4.2% left/right; heading at the top; content between ~15% and ~85% of the height;
+one caption line at 87% (`.deck-caption`); the section footer below. Components:
+
+- **Figure + points**: `.deck-figure` (left ~52%) plus `Deck.points([{title, sub, from}], {className})`
+  (`.deck-col`). Move the column only through `--col-left`, `--col-top`, `--col-title`, `--col-gap`.
+- **Lead line** under the heading: `.deck-lead`. **Code**: `<code class="deck-code">`. **Keys**: `<kbd>F</kbd>`.
+- **Emphasis**: `.deck-accent` (accent colour), `<mark class="deck-mark">` (highlighter), `.deck-muted`,
+  `.deck-detail` (credits, data sources — quieter than muted).
+- **Charts**: `Deck.groupedBars` (`web/plots.js`) for bars; the optional data-driven components in the table cover lines, scatter, funnel, binary hull, phonons, bands/DOS and XRD. See the component headers and `talks/plot-gallery/` and `talks/spectra-gallery/` for their contracts.
+- **Step reveals**: give elements `class="reveal-in" data-from="k"` (or `data-show="1 3"`) and call
+  `Deck.show(frame, step, animate)` from `enter`. `--i` on siblings staggers them.
+- **Title / closing**: `.deck-title`, `.deck-subtitle`, `.deck-byline`.
+
+**Colours**: CSS uses `var(--fg)`, `var(--muted)`, `var(--accent)`, `var(--detail)`, `var(--plot-1..8)`.
+Canvas, SVG and manim-web code uses `palette` (`P.fg`, `P.muted`, `P.accent`, `P.series[i]`, `P.ss`, `P.cpk`),
+which mirrors the CSS. **Never hard-code white/black or a hex colour in a slide** — both themes must work:
+light is the default, dark is `T` or `?theme=dark`. If you change a theme colour, change it in both `deck.css` and `PALETTES` in
+`deck.js`.
+
+### 项目默认配色（现有与后续讲稿均沿用）
+
+采用**蓝橙主色 + 彩虹辅助色**。用户明确要求：浅色页面背景 `#FBFAF8`、暗色页面背景
+`#0F1218` 均保持不变，不替换成参考图的雾灰或海军蓝。配色调整不应附带修改字体、字号或版式。
+
+| 角色 / CSS 变量 | 浅色 | 暗色 | 使用规则 |
+| --- | --- | --- | --- |
+| bg / `--bg` | `#FBFAF8` | `#0F1218` | 页面背景，固定不变 |
+| fg / `--fg` | `#11224E` | `#EDF0F4` | 正文、主要数字 |
+| accent / `--accent` | `#3166DD` | `#82A7FF` | 标题、编号、链接、当前章节 |
+| highlight / `--highlight` | `#FF7200` | `#FF9A4D` | 图形重点、当前步骤、重点填充 |
+| highlightText / `--highlight-text` | `#A84600` | `#FF9A4D` | 橙色文字，使用 `.deck-highlight` |
+| muted / `--muted` | `#5C6370` | `#9AA0A6` | 次级正文 |
+| detail / `--detail` | `#687386` | `#929DAD` | 来源、注释和说明 |
+| done / `--done` | `#007F73` | `#4DB6AC` | 完成、通过，配合文字或符号 |
+| surface / `--surface` | `#FFFFFF` | `#192333` | 代码等局部内容面板 |
+
+- 中性色约占 80%、蓝色约占 15%、橙色约占 5%，作为视觉参考。橙色集中强调每页一两处重点。
+- 浅色主题的普通橙色文字用 `highlightText`，不要直接用品牌橙；橙底标签配深色字。
+- HTML/CSS、SVG、Canvas 和 manim-web 必须使用同一套语义颜色；同步维护
+  `web/deck.css` 与 `web/deck.js` 中的 `PALETTES`，页面不另写硬编码色值。
+- 两种主题分别验证可读性；普通文字对比度至少 4.5:1，图表不只靠颜色传达类别和状态。
+
+**图表与彩虹辅助色：**
+
+| 索引 | 默认 series / `--plot-1..8`（浅色） | rainbow 分类色库（浅色） |
+| --- | --- | --- |
+| 1 | 蓝 `#3166DD` | 亮蓝 `#448AFF` |
+| 2 | 品牌橙 `#FF7200` | 深蓝 `#1565C0` |
+| 3 | 青绿 `#009688` | 青绿 `#009688` |
+| 4 | 莓红 `#AD1457` | 草绿 `#8BC34A` |
+| 5 | 深蓝 `#1565C0` | 琥珀黄 `#FFC107` |
+| 6 | 亮蓝 `#448AFF` | 橙 `#FF9800` |
+| 7 | 草绿 `#8BC34A` | 红 `#F44336` |
+| 8 | 琥珀黄 `#FFC107` | 莓红 `#AD1457` |
+
+- 暗色读取 `PALETTES.dark` 的对应提亮色，保持类别索引一致，不直接套用浅色值。
+- 两组对比优先用蓝与品牌橙；通常每图使用 3–5 色，同一对象跨页保持同色。
+- 品牌橙与辅助橙通常不在同一图中充当两个类别；相近蓝色也需要线型、点形或文字辅助区分。
+- 浅底黄色、草绿等亮色填充配深色边线或标签。彩虹色用于离散类别；连续大小用单色明度变化，
+  正负偏差用蓝—中性—橙。
+- 保留元素、CPK、晶体和结构的专业配色含义，原始网页证据截图不重着色。
+
+补充说明见 [docs/color-system.md](docs/color-system.md)。
+
+### 标准图表优先使用成熟库
+
+新建或迁移柱状、折线、散点、热力等常规数据图表，优先使用本地 `vendor/echarts/` 的 Apache ECharts，
+通过 `web/echarts.js` 的 `Deck.echart` 接入。直接写原生 ECharts option 和数据；不要重新实现坐标轴、
+刻度、图例、提示框、数值标签或常规图表动画。适配代码只负责主题、尺寸、幻灯片步骤和实例生命周期。
+接线示例见 `talks/plot-gallery/slides/echarts.js`。示例放在 plot-gallery，保留上游 example 原样。
+
+离线使用本地固定版本，保留 LICENSE/NOTICE，不增加 CDN 或强制构建步骤。图表读取上述配色和字号，
+页面背景透明；后退与直接跳转还原完整目标状态；控制器接入 leave/freeze/destroy，销毁实例并保留 SVG 缩略图。
+manim-web 保留给镜头运动、几何构造和专门的讲解动画，晶体组件继续负责晶体结构。
+已有图表按需迁移，不为采用图表库而重写科学计算、数据来源或非图表动画。
+
+## manim-web animation (the click-step centrepiece)
+
+```js
+const stage = Deck.manim(frame.querySelector('.deck-stage'), {
+  build: ({ M, P }) => ({ circle: new M.Circle({ color: P.accent }), square: new M.Square({ color: P.fg }) }),
+  steps: [
+    ({ circle }, { M }) => [new M.Create(circle)],                          // step 1, plays on arrival
+    async ({ circle, square }, { M, play, wait }) => {                      // step 2: several plays in sequence
+      await play(new M.Transform(circle, square)); await wait(0.3); await play(new M.Indicate(circle));
+    },
+  ],
+});
+return { enter(step, animate) { Deck.show(frame, step, animate); return stage.go(step, animate); },
+         freeze: stage.freeze, destroy: stage.dispose };
 ```
 
-- `build` 里**不要**把 mobject 放进模块变量；回退会重建。
-- 场景透明，16×9 世界单位，原点居中，y 向上。
-- `Transform` 只能在点数匹配的形状间变形；不同形状请淡出/淡入。
-- 文字用 HTML 或 `M.Text`；公式用 `M.MathTex`（KaTeX，离线可用）。
-- **公式逐项变形一律用 `morphTex(from, to)`**，不要直接 `new M.TransformMatchingTex`：后者会就地改写源公式、不会把目标放进场景，
-  直接用会留下叠影。
-- `MathTex` 的字形是异步渲染的：`getPart()` 必须在 `prepare` 里调用，不能在 `build` 里。
-- **文字里出现数学符号（√、下标、上标、希腊字母）一律用行内公式 `$…$`**，不要直接打 Unicode 字符：
-  旁白 `captions()`、`inlineTex()` 都支持，如 String.raw`除以 $\sqrt{d_k}$`。纯文本里的 `√d` 用的是备用字体，和公式对不齐，还丢下标。
-- LaTeX 反斜杠一律用 `String.raw\`…\``，否则 `\top`、`\frac` 里的 `\t`、`\f` 会被当成转义字符。
+- `build` must create **fresh objects** every call: going back a step rebuilds the scene and replays steps
+  instantly. Never keep mobjects in module-level variables.
+- A step returns animations to play together, or calls `play()`/`wait()`/`add()` itself. In the instant
+  path `play` applies animations at their end state and `wait` is a no-op, so the same code serves both.
+- The scene is transparent and spans the frame: 16 × 9 world units, origin at the centre, y up. Keep shapes
+  clear of the heading (y > ~3.3) and of any HTML column on the right.
+- `Transform` morphs point to point; between unlike shapes (rectangles → area, shape → text) fade one out
+  and the other in, or manim-web throws "mismatched point counts".
+- Text: `M.Text({ fontFamily: 'Lato', ... })` for words, `M.MathTex({ latex })` for maths (KaTeX is bundled
+  and works offline). Prefer HTML for long text; keep manim text for things that move.
+- The manim-web API mirrors Python manim (camelCase: `getRiemannRectangles`, `moveTo`, `nextTo`). Its type
+  declarations are in the npm package (`npm pack manim-web@0.39.4`) when you need an exact signature.
 
-## 图表（packs/plot）
+## The crystal add-on
 
-每个图表 = 一个类（`create` 返回 `{ apply(state, animate), destroy() }`）+ 页面工厂（基于 `chartSlide`）+ 纯逻辑单测（`*Math.ts` / `*.test.ts`）。
+Load `web/addons/{bond_rules,crystal_logic,crystal}.js` in the talk's `index.html` (see `talks/materials-demo/`). It is a
+port of the `CrystalView` of the earlier manim-materials-slides, which renders better than the molecule stage for crystals:
+its own renderer, matte ball-and-stick, muted element colours, labels in a row above the structure with leader lines.
 
-```ts
-lineChartSlide({
-  name: 'zT–T', series, x: { domain: [300, 800], label: '$T$ (K)' }, y: { domain: [0, 1.6], label: '$zT$' },
-  note: '示意数据',                                   // 右下角小注；不是真实数据就必须写
-  steps: [ { caption: '先画材料 A', state: { shown: 1 } }, { caption: '标出峰值', state: { peaks: true } } ],
-})
-```
+- **Data**: `uv run tools/prep_crystal.py my.cif talks/<talk>/data/my_crystal.js --name "Bi₂Te₃"` writes the unit
+  cell (lattice vectors, fractional atoms, symmetry applied by gemmi) to `window.DATA.my_crystal`. Bonds and polyhedra are
+  not stored: the browser finds them with **pymatgen's JmolNN rule** (bonded when `0.4 Å < d ≤ r_a + r_b + 0.45 Å`, Jmol
+  radii), exported by `uv run tools/export_bond_rules.py` into `web/addons/bond_rules.js`. Re-run that after upgrading pymatgen.
+- **A whole slide**: `Deck.crystalSlide({ name, data, heading, polyhedra: ['Ti'], repeat, orientation, steps: [...] })`. A
+  step may set `show` (`cell`/`atoms`/`bonds`/`polyhedra`, 0..1), `dim`, `fly` (`{ dir, target, zoom }`), `labels`, `labelFor`,
+  `axes`, `highlight`, `layer`, `nodes`, `cutoff`, `gnn`. A later step inherits what an earlier one set, so jumping and going
+  back match clicking through. Each step gets a line in the points column (`title`, `sub`).
+- **By hand**: `new Deck.CrystalView(host, Deck.crystalLogic.build(data, { repeat, polyhedra }), { orientation })`; the methods
+  are listed at the top of `crystal.js`. Call `dispose()` in `destroy`.
+- **Looks**: colours come from `ELEMENT_COLOURS` in `crystal.js` (muted, one hue per element), then `palette.cpk`. The lights ride on
+  the camera, so the crystal is lit from the viewer's side, slanted from above left, however you turn it; do not fix lights in the scene.
+- c is up. Tall cells (Bi₂Te₃ has c = 30 Å) are laid on their side with `orientation: [0, Math.PI / 2, 0]` and a side `fly.dir`.
+- Cells with partial occupancy or disorder are not handled; a repeat above about 3×3×3 gets slow (pair search is quadratic).
 
-| 组件 | 页面工厂 | state 字段 |
-|---|---|---|
-| 折线（zT–T、取舍曲线） | `lineChartSlide` | `shown` `focus` `peaks` `refX` |
-| 能带 + 态密度 | `bandSlide` | `bands` `fermi` `gap` `dos` `focusBand` |
-| 散点（性能–性能图） | `scatterSlide` | `groupsShown` `highlight` `region` `labels` |
-| 形成能凸包 | `hullSlide` | `shown` `hull` `drops` `focus` |
-| 筛选漏斗 | `funnelSlide` | `shown` `focusLast` |
-| XRD 谱 | `xrdSlide` | `sticks` `curve` `compare` `hkl` |
+## The molecule add-on (turntable stage)
 
-- **state 是完整状态**：`chartSlide` 把第 1..k 步的 `state` 浅合并（后者覆盖前者）再交给 `apply`。每步只写变化的字段。
-- **动画只用 CSS transition**：给元素加 class `tr`，改 opacity / stroke-dashoffset / transform / 颜色。跳转时 `chartSlide` 给 `.chart-host` 加 `no-tr` 关掉所有过渡，图表代码不要区分“点过来”和“跳转”。描边“画出来”用 `prepareDraw/setDrawn`。
-- 图上文字 ≥ 28 个 viewBox 单位（刻度 28、标签 32）；轴标签、公式用 `$…$`（走 `htmlLabel` / foreignObject）。
-- **数据诚实**：示例数据不是真实测量/计算结果就必须写“示意数据”小注，材料用 A/B/C 之类泛称，不要编造“某论文的实测值”。
-- 数据来源：`uv run tools/csv_to_ts.py x.csv out.ts --name xData` 生成 `{ xName, x, series:[{name,y}] }`，折线图用 `fromColumnTable(xData)` 转换（缺失值 `null` 自动跳过）。
-- 纯逻辑放 `*Math.ts`（不 import 带 CSS 的模块，否则 vitest 的 node 环境加载不了），并写**手算得出**的断言，不要只测“不抛错”。
+Load `web/addons/{molstar,cartoon,turntable,atoms}.js` in the talk's `index.html`. Pattern (see
+`talks/example/slides/molecule.js`, `protein.js`, `design_check.js`):
 
-## 大模型组件（packs/llm）
+- `const view = Deck.turntable(host, { radius, scale })` — `radius` in scene units (the model's half-size),
+  `scale` = scene units per Å. Drag turns, wheel zooms, idle rock; a plain click still steps the deck.
+- Add `M.Molecule3D` (positions **and radii** scaled by `scale`) or three.js meshes with `view.add`.
+- `Deck.cartoon(data, { color } | { ss: P.ss })` builds in **Å**; scale its mesh (`mesh.scale.setScalar(scale)`),
+  never the Cα coordinates (ribbon widths are Å, so scaling coordinates makes fat ribbons).
+- `view.model` is a group in Å (scaled by `scale`): put three.js content there. `await view.focus(pointÅ, zoom, ms)`
+  moves the camera's turning point and zoom (the close-up / pan / zoom-out transitions); `view.project(pointÅ)`
+  gives screen pixels for HTML labels, placed in `view.onRender`. Fade the context (cartoon) in close-ups, or it
+  fills the view.
+- `Deck.ballStick(points, colours, bonds)` and `Deck.cages(points)` (`atoms.js`): instanced, fade as one. Cages
+  mark where atoms were asked to be.
+- Protein data: `python tools/prep_protein.py my.cif talks/<talk>/data/my_protein.json [--atoms]` → load
+  `data/my_protein.js`, read `data.my_protein`.
+- On/off over a figure: `<button class="deck-switch" aria-pressed="true"><i></i>label</button>` (deck.css).
+- Mark 3D slides `interactive: true`; wire `leave: view.stop`, `freeze: view.render`, `destroy: view.dispose`.
+- Browsers keep ~16 WebGL contexts; the deck keeps only slides within 3 of the current one alive (KEEP in `web/deck.js`) and
+  pictures the rest. Always implement `destroy`.
 
-同样是“类 + 页面工厂（基于 `chartSlide`）+ 纯逻辑单测”。
+## Data
 
-| 组件 | 页面工厂 | state 字段 |
-|---|---|---|
-| 词元条 | `tokenStripSlide` | `split` `ids` `focus` |
-| 注意力热图 | `attentionMapSlide` | `rowsShown` `focusRow` `masked` |
-| 下一个词元的概率 | `nextTokenSlide` | `round` `phase` `temp` `k` |
-| 架构块图 | `blockSlide` | `shown` `active` `residuals` `group` |
-| Agent 编排回放 | `agentSlide` | `at`（回放到第几个事件） |
+Slides read `ctx.data.<name>` from `window.DATA`, filled by `talks/<talk>/data/<name>.js` files loaded with
+`<script>` tags (browsers won't `fetch` JSON from `file://`). Generate these with a script in `tools/` that
+writes both `.json` and `.js`; don't hand-type large data into slides. Record where data came from in the
+prep script's docstring and in the slide's notes or a `.deck-detail` credit.
 
-- **真实计算优先**：注意力（`attention(Q,K)`）、softmax / 温度 / 熵都是现算的，不要手填概率；示例用的是确定性随机小模型，页面上必须写“非真实模型输出”。
-- **Agent 回放不绑定任何项目**：`fromMessages(messages)` 把 LangChain 风格消息数组（`human/ai/tool`、`tool_calls`、`task` 工具委派子 agent、`additional_kwargs.subagent_status`，字段名与 harness 线程一致）转成通用 `AgentTrace`；并行调用合成一个 `delegate` 事件，失败后同样的调用被识别为 `retry`。换成真实线程只需替换消息数组。
-- 动画里**不要用 rAF / setTimeout 驱动状态**，会破坏“跳转 == 点过来”；位移用 CSS transform 过渡。
-
-## 3D 晶体
-
-- 数据：`uv run tools/cif_to_ts.py x.cif src/talks/example/data/x.ts --export X --name "显示名"`，得到 `Crystal`（晶格矢量 Å + 分数坐标）。
-- 规则：`presets.ts` 里写成键/配位规则，如 `{ polyhedra: [{ center: 'Ti', ligand: 'O', max: 2.2 }] }`。
-- 页面：`crystalSlide({ name, crystal, options, steps: [{ caption, show, dim, fly }] })`。后面的步骤**继承**前面的设置，
-  所以跳转时合并 1..step 即可，天然幂等。
-- 相机**z 轴朝上**（c 轴竖直）。很高/很长的晶胞（如 Bi₂Te₃ 的 c = 30 Å）在横向画面里又窄又小：给 `crystalSlide` 传 `orientation: [0, Math.PI / 2, 0]`（弧度，欧拉角 XYZ）让长轴横过画面，再用 `zoom` 推近（Bi₂Te₃ 用 1.75）。此后 `fly.dir` / `fly.target` 都是旋转后的场景坐标。俯视用 `dir: [0.001, 0.001, 1]`（别用恰好 `[0,0,1]`，会退化）。
-- `show` 的 `cell/atoms/bonds/polyhedra` 是 0..1 的目标可见度；`dim: ['Sr']` 压暗某元素；`dim: []` 全部恢复。
-- 拖动旋转、滚轮缩放；deck 会区分“拖动”和“点击”，拖动不会翻页。
-- 晶体 → 图：步骤里 `nodes: 0..1` 把球棍模型平滑变成“图”（原子变小圆点、键变细）；`gnn: { center, hops }` 以某原子（下标或元素符号）为中心按跳数着色，超出 `hops` 的原子压暗，演示 GNN 消息传递的感受野逐轮扩大。图结构与 BFS 在 `graph.ts`（`atomGraph` / `hopDistances` / `receptiveField`，有单测）。
-- 步骤里还可以声明（后一步继承前一步，`null` 取消）：`labels`（元素标签，引线连到代表原子）、`labelFor`、`axes`（a/b/c 晶格矢量箭头）、`highlight: { els?, indices? }`（放大 + 描边，其余不变暗）、`layer: { axis, from, to }`（按分数坐标区间聚焦一层，其余压暗到 0.1）；`crystalSlide({ legend: true })` 给元素图例；超胞用 `options: { repeat: [2, 2, 1] }`。
-
-## 已知坑
-
-- manim-web 有几个可选动态导入（`pptxgenjs`、typst）没装，`vite.config.ts` 里用空模块顶替，否则预打包报错。**不要删**。
-- `[hidden]` 必须 `display:none !important`（已在 `deck.css`），否则带 `display:grid` 的总览层会一直盖住画面。
-- 在浏览器自动化里用 `navigate` 打开带哈希的页面，会多触发一次“点击”，页码会多走一步；用 `location.hash = '#/页/步'` 跳转更可靠。
-
-## 检查
+## Checking your work
 
 ```bash
-npm test           # 单元测试（vitest）：晶体结构构建，如配位数、键长
-npm run check      # 无头浏览器逐页逐步检查（用本机 Chrome/Edge，不下载浏览器）
-npm run check -- --slide 4          # 只查第 4 页
-npm run check -- --no-compare       # 只抓控制台错误，更快
-npm run build      # tsc 类型检查 + vite 构建
-npm run dev        # http://localhost:4100   #/页/步 直达，如 #/4/3
+pip install playwright && playwright install chromium     # once
+python tools/check_deck.py talks/example                  # every slide and step, dark and light
+python tools/check_deck.py talks/example --slide manim-graph --back   # one slide, also stepping backwards
 ```
 
-`npm run check` 做两件事：
-1. 逐页逐步跳转，**任何 `console.error` 或未捕获异常都算失败**。
-2. 验证 `enter()` 契约：对每一步，“从第 1 步一路点过来”和“直接跳到该步”的截图必须一致（差异 ≤ 0.1%）。
-   不一致说明某页的 `enter` 写成了“增量”而不是“状态”，差异图在 `check/diff-页-步.png`。
+It fails on any console error or warning and writes a picture per slide (at its last step) to
+`talks/<talk>/check/` (git-ignored). **Look at the pictures** in both themes — text overlapping a figure,
+something under the heading, or a colour invisible in one theme are the usual faults and are not
+console errors. For live work: `python -m http.server 8000` in the repo root, then open
+`http://localhost:8000/talks/<talk>/index.html` (add `?theme=dark`, `#/4` for the fifth slide: the hash counts from 0).
 
-截图在 `check/<演讲名>/`（已 git 忽略；每个演讲用自己的子目录，几个检查同时跑也不会互相删）。**改完请肉眼看截图**：文字压图、颜色在白底上看不清、3D 被旁白挡住，都不是控制台错误。
-新增页面后必须跑一遍 `npm run check`；改了 `structure.ts` 必须跑 `npm test`。
+## Publishing
 
-## 约定
+If GitHub is connected to Cloudflare Pages, pushes to the production branch publish the site
+(`tools/build_site.sh`: front page, `talks/`, `web/`, `vendor/` only). Push only when the person asks,
+and run `check_deck.py` first. `tools/deploy_pages.sh` uploads the working copy by hand; run it only
+from a checkout containing talks intended for publication. A new talk appears at `/talks/<name>/`;
+link it from the root `index.html` if it should be findable.
 
-- 通用的东西放 `src/runtime` 或 `src/packs`；某一场演讲的内容只放 `src/talks/<名称>/`。
-- 新的可复用组件：放进对应 `packs/`，文件头写用法注释，并在 `src/talks/example/` 里放一个示范。
-- 数据用脚本生成，不手敲进幻灯片；在生成文件头和页面备注里写清来源。
-- 不引入 CDN；演示需离线可用（`npm run build` 后用任意静态服务器打开 `dist/`）。
+## Conventions
+
+- Keep the template generic: talk-specific content lives under `talks/<name>/`, never in `web/`.
+- A new reusable component goes in `web/` with a usage comment at the top of the file (like `plots.js`),
+  styles in `deck.css`, and a demo in `talks/example/`. Update this file's tables.
+- A new component's header comment is its documentation: write the usage comment at the top of the file, run
+  `python tools/gen_components.py`, and `python tools/check_docs.py` must pass.
+- Comments explain *why* and what a step shows; every slide file starts with a short comment listing its steps.
+- Upgrading manim-web: `tools/vendor_manim_web.sh <version>`, then run `check_deck.py` on every talk.
+- Don't add CDN links, npm builds or frameworks; the deck must open offline from disk.
+
+## Keys while presenting
+
+→/← or left/right click: step · S: speaker notes · O: overview · F: fullscreen · T: dark/light · L: laser
+pointer · Esc: leave overview. The laser pointer is shared with the speaker view: the dot you move in the audience window
+appears at the same place on the speaker view's current-slide preview, and the other way round (BroadcastChannel in
+`web/deck.js`, so it needs http(s) like the speaker view itself; every talk gets it from the runtime). The same channel carries the pose
+of the 3D views, so turning a crystal or a molecule in one window turns it in the other: a component registers with
+`Deck.shareView(host, { get, set })` (the crystal view and the turntable already do); a new 3D component should do the same. URL `#/n` jumps to the slide with index n, counting from 0 (`#/0` is the first).

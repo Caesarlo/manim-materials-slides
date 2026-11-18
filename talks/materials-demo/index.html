@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crystal structures, live</title>
+<!--
+  Demo of the crystal-structure component (web/addons/crystal.js) on the live-slides runtime.
+  Arrow keys or clicks step, S speaker notes, O overview, F fullscreen, T dark/light theme, L laser pointer.
+-->
+<link rel="stylesheet" href="../../vendor/reveal/reveal.css">
+<link rel="stylesheet" href="../../web/deck.css">
+</head>
+<body>
+<div class="reveal"><div class="slides"></div></div>
+
+<!-- the runtime -->
+<script src="../../vendor/reveal/reveal.js"></script>
+<script src="../../vendor/reveal/notes.js"></script>
+<script src="../../vendor/manim-web/manim-web.iife.js"></script>
+<script src="../../web/deck.js"></script>
+<script src="../../web/manim.js"></script>
+<script src="../../web/plots.js"></script>
+<!-- the crystal component: pymatgen's bonding rule, the structure logic, then the three.js view -->
+<script src="../../web/addons/bond_rules.js"></script>
+<script src="../../web/addons/crystal_logic.js"></script>
+<script src="../../web/addons/crystal.js"></script>
+
+<!-- data the slides read (window.DATA), written by tools/prep_crystal.py -->
+<script src="data/srtio3.js"></script>
+<script src="data/bi2te3.js"></script>
+
+<!-- Deck.section(n) puts the slides after it in section n of the footer bar (named in slides/outline.js); null = none -->
+<script>Deck.section(null)</script>
+<script src="slides/title.js"></script>
+<script src="slides/outline.js"></script>
+
+<script>Deck.section(1)</script>
+<script src="slides/srtio3.js"></script>
+
+<script>Deck.section(2)</script>
+<script src="slides/bi2te3.js"></script>
+
+<script>Deck.start({ title: 'Crystal structures, live', smoothBack: '3d' });</script>
+</body>
+</html>
